@@ -1,6 +1,6 @@
 {
-	"name": "buddypress/buddypress",
-	"description": "BuddyPress adds community features to WordPress. Member Profiles, Activity Streams, Direct Messaging, Notifications, and more!",
+	"name": "buddyboss/buddyboss-platform",
+	"description": "The BuddyBoss Platform adds community features to WordPress. Member Profiles, Activity Feeds, Direct Messaging, Notifications, and more!",
 	"type": "wordpress-plugin",
 	"keywords": [
 		"activity",
@@ -12,19 +12,19 @@
 		"profiles",
 		"social network"
 	],
-	"homepage": "https://buddypress.org",
+	"homepage": "https://www.buddyboss.com/website-platform/",
 	"license": "GPL-2.0+",
 	"authors": [ {
-		"name": "BuddyPress Community",
-		"homepage": "https://buddypress.org/about/"
+		"name": "BuddyBoss",
+		"homepage": "https://buddyboss.com/"
 	} ],
 	"support": {
 		"forum": "https://buddypress.org/support/",
-		"docs": "https://codex.buddypress.org/",
-		"issues": "https://buddypress.trac.wordpress.org/",
-		"rss": "https://buddypress.org/feed/",
-		"source": "https://buddypress.trac.wordpress.org/browser/",
-		"wiki": "https://codex.buddypress.org/"
+		"docs": "https://www.buddyboss.com/resources/developers/",
+		"issues": "https://support.buddyboss.com/support/home/",
+		"rss": "https://www.buddyboss.com/feed/",
+		"source": "https://github.com/buddyboss/buddyboss-platform",
+		"wiki": "https://www.buddyboss.com/resources/docs/"
 	},
 	"require": {
 		"composer/installers": "^2",
