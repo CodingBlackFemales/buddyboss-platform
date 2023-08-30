@@ -47,7 +47,10 @@
 		"lint-php-fix": "vendor/bin/phpcbf",
 		"lint-js": "grunt jsvalidate jshint",
 		"lint-css": "grunt stylelint",
-		"lint": ["@lint-php", "@lint-js", "@lint-css"]
+		"lint": ["@lint-php", "@lint-js", "@lint-css"],
+		"update-src": "cd src && composer install && cd ..",
+		"post-install-cmd": "@update-src",
+		"post-update-cmd": "@update-src"
 	},
 	"config": {
 		"platform-check": false,
