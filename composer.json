@@ -30,7 +30,8 @@
 		"composer/installers": "^2",
 		"php": ">=8.0.0",
 		"phpunit/phpunit": "^9",
-		"php-ffmpeg/php-ffmpeg": "^1.1.0"
+		"php-ffmpeg/php-ffmpeg": "^1.1.0",
+		"maennchen/zipstream-php": "^2.1"
 	},
 	"require-dev": {
 	  "symfony/var-dumper": "^4.2",
@@ -49,6 +50,10 @@
 		"lint": ["@lint-php", "@lint-js", "@lint-css"]
 	},
 	"config": {
-		"platform-check": false
+		"platform-check": false,
+		"allow-plugins": {
+			"composer/installers": true,
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		}
 	}
 }

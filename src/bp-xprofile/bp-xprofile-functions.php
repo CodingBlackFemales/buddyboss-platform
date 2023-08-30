@@ -1697,6 +1697,8 @@ function bp_get_user_social_networks_urls( $user_id = null ) {
 	$social_networks_id    = $social_networks_field->id;
 	$social_networks_text  = $social_networks_field->name;
 
+	$is_enabled_header_social_networks  = bb_enabled_profile_header_layout_element( 'social-networks' ) && function_exists( 'bb_enabled_member_social_networks' ) && bb_enabled_member_social_networks();
+
 	$html = '';
 
 	$original_option_values = array();
@@ -1730,20 +1732,23 @@ function bp_get_user_social_networks_urls( $user_id = null ) {
 								<div class="modal-wrapper">
 									<div class="modal-container">
 										<header class="bb-model-header">
-											<h4><span class="target_name">' . esc_attr( $social_networks_text ) . '</span></h4>
-											<a class="bb-close-action-popup bb-model-close-button" href="#">
-												<span class="bb-icon-l bb-icon-times"></span>
-											</a>
+											<h4>
+												<span class="target_name">' . esc_attr( $social_networks_text ) . '</span>
+											</h4>
+											<a class="bb-close-action-popup bb-model-close-button" href="#"><span class="bb-icon-l bb-icon-times"></span></a>
 										</header>
 										<div class="bb-action-popup-content">';
-				foreach ( $original_option_values as $key => $original_option_value ) {
-					if ( '' !== $original_option_value ) {
-						$key   = bp_social_network_search_key( $key, $providers );
-						$html .= '<span class="social ' . esc_attr( $providers[ $key ]->value ) . '"><a target="_blank" data-balloon-pos="up" data-balloon="' . esc_attr( $providers[ $key ]->name ) . '" href="' . esc_url( $original_option_value ) . '"><i class="bb-icon-rf bb-icon-brand-' . esc_attr( strtolower( $providers[ $key ]->value ) ) . '"></i></a></span>';
-					}
-					$i++;
-				}
-				$html .= '</div></div></div></div></div>';
+										foreach ( $original_option_values as $key => $original_option_value ) {
+											if ( '' !== $original_option_value ) {
+												$key   = bp_social_network_search_key( $key, $providers );
+												$html .= '<span class="social ' . esc_attr( $providers[ $key ]->value ) . '"><a target="_blank" data-balloon-pos="up" data-balloon="' . esc_attr( $providers[ $key ]->name ) . '" href="' . esc_url( $original_option_value ) . '"><i class="bb-icon-rf bb-icon-brand-' . esc_attr( strtolower( $providers[ $key ]->value ) ) . '"></i></a></span>';
+											}
+										}
+										$html .= '</div>
+									</div>
+								</div>
+							</div>
+						</div>';
 			}
 		}
 	}
@@ -2446,3 +2451,22 @@ function bb_get_user_social_networks_field_value( $user_id = null ) {
 	return $original_option_values;
 }
 
+/**
+ * Get a profile Field Type object.
+ *
+ * @since BuddyBoss 2.3.70
+ *
+ * @param int $field_id ID of the field.
+ *
+ * @return BP_XProfile_Field_Type|null Field Type object if found, otherwise null.
+ */
+function bb_xprofile_get_field_type( $field_id ) {
+	$field_type = null;
+	$field      = xprofile_get_field( $field_id, null, false );
+
+	if ( $field instanceof BP_XProfile_Field ) {
+		$field_type = $field->type_obj;
+	}
+
+	return $field_type;
+}

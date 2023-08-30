@@ -699,7 +699,7 @@ add_filter( 'bp_repair_list', 'bb_moderation_migrate_old_data' );
  */
 function bb_moderation_admin_repair_old_moderation_data() {
 	global $wpdb;
-	$suspend_table            = "{$wpdb->prefix}bp_suspend";
+	$suspend_table            = "{$wpdb->base_prefix}bp_suspend";
 	$offset                   = isset( $_POST['offset'] ) ? (int) ( $_POST['offset'] ) : 0;
 	$sql_offset               = $offset - 1;
 	$moderated_activities_sql = $wpdb->prepare( "SELECT id,item_id,item_type FROM {$suspend_table} WHERE item_type IN ('media','video','document') GROUP BY id ORDER BY id DESC LIMIT 10 OFFSET %d", $sql_offset );
@@ -973,6 +973,7 @@ function bb_moderation_before_activity_entry_callback() {
 add_action( 'bp_before_activity_entry', 'bb_moderation_before_activity_entry_callback' );
 add_action( 'bp_before_activity_comment_entry', 'bb_moderation_before_activity_entry_callback' );
 add_action( 'bp_before_group_members_list', 'bb_moderation_before_activity_entry_callback' );
+add_action( 'bp_before_group_manage_members_list', 'bb_moderation_before_activity_entry_callback' );
 
 /**
  * Filter to update the avatar url for the after activity comment, group posts/comment, group members.
@@ -987,3 +988,4 @@ function bb_moderation_after_activity_entry_callback() {
 add_action( 'bp_after_activity_entry', 'bb_moderation_after_activity_entry_callback' );
 add_action( 'bp_after_activity_comment_entry', 'bb_moderation_after_activity_entry_callback' );
 add_action( 'bp_after_group_members_list', 'bb_moderation_after_activity_entry_callback' );
+add_action( 'bp_after_group_manage_members_list', 'bb_moderation_before_activity_entry_callback' );
