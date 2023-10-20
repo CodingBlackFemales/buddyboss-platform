@@ -99,6 +99,18 @@ jQuery( document ).ready(
 						}
 					);
 
+					window.forums_medium_forum_editor[key].subscribe( 'editablePaste', function ( e ) {
+						// Wrap all target <li> elements in a single <ul>
+						var targetLiElements = jQuery(e.target).find('li').filter(function() {
+							return !jQuery(this).parent().is('ul') && !jQuery(this).parent().is('ol');
+						});
+						if (targetLiElements.length > 0) {
+							targetLiElements.wrapAll('<ul></ul>');
+							// Update content into input field
+							jQuery( e.target ).closest( 'form' ).find( '#bbp_forum_content' ).val( window.forums_medium_forum_editor[key].getContent() );
+						}
+					});
+
 				});
 			}
 
@@ -222,6 +234,18 @@ jQuery( document ).ready(
 						}
 					);
 
+					window.forums_medium_reply_editor[key].subscribe( 'editablePaste', function ( e ) {
+						// Wrap all target <li> elements in a single <ul>
+						var targetLiElements = jQuery(e.target).find('li').filter(function() {
+							return !jQuery(this).parent().is('ul') && !jQuery(this).parent().is('ol');
+						});
+						if (targetLiElements.length > 0) {
+							targetLiElements.wrapAll('<ul></ul>');
+							// Update content into input field
+							jQuery( e.target ).closest( 'form' ).find( '#bbp_reply_content' ).val( window.forums_medium_reply_editor[key].getContent() );
+						}
+					});
+
 					if ( ! _.isUndefined( BP_Nouveau.forums.params.link_preview ) && BP_Nouveau.forums.params.link_preview ) {
 						var bbp_reply_content = jQuery(element).closest('form').find( '#bbp_reply_content' );
 						var form = jQuery(element).closest( 'form' );
@@ -252,14 +276,6 @@ jQuery( document ).ready(
 
 				});
 
-				if ( 'undefined' !== typeof bp.Nouveau.TopicReplyDraft ) {
-					jQuery( 'form[name="new-post"]' ).each(
-						function () {
-							var topicReplyDraft = new bp.Nouveau.TopicReplyDraft( jQuery( this ) );
-							topicReplyDraft.displayTopicReplyDraft();
-						}
-					);
-				}
 			}
 
 			// Add Click event to show / hide text formatting Toolbar for reply form.
@@ -387,6 +403,18 @@ jQuery( document ).ready(
 						}
 					);
 
+					window.forums_medium_topic_editor[key].subscribe( 'editablePaste', function ( e ) {
+						// Wrap all target <li> elements in a single <ul>
+						var targetLiElements = jQuery(e.target).find('li').filter(function() {
+							return !jQuery(this).parent().is('ul') && !jQuery(this).parent().is('ol');
+						});
+						if (targetLiElements.length > 0) {
+							targetLiElements.wrapAll('<ul></ul>');
+							// Update content into input field
+							jQuery( e.target ).closest( 'form' ).find( '#bbp_topic_content' ).val( window.forums_medium_topic_editor[key].getContent() );
+						}
+					});
+
 					if ( ! _.isUndefined( BP_Nouveau.forums.params.link_preview ) && BP_Nouveau.forums.params.link_preview ) {
 						var bbp_topic_content = jQuery(element).closest('form').find( '#bbp_topic_content' );
 						var form = jQuery(element).closest( 'form' );
@@ -417,14 +445,6 @@ jQuery( document ).ready(
 
 				});
 
-				if ( 'undefined' !== typeof bp.Nouveau.TopicReplyDraft ) {
-					jQuery( 'form[name="new-post"]' ).each(
-						function () {
-							var topicReplyDraft = new bp.Nouveau.TopicReplyDraft( jQuery( this ) );
-							topicReplyDraft.displayTopicReplyDraft();
-						}
-					);
-				}
 			}
 
 			// Add Click event to show / hide text formatting Toolbar for topic form.
@@ -610,6 +630,18 @@ jQuery( document ).ready(
 								}
 							);
 
+							window.forums_medium_forum_editor[key].subscribe( 'editablePaste', function ( e ) {
+								// Wrap all target <li> elements in a single <ul>
+								var targetLiElements = jQuery(e.target).find('li').filter(function() {
+									return !jQuery(this).parent().is('ul') && !jQuery(this).parent().is('ol');
+								});
+								if (targetLiElements.length > 0) {
+									targetLiElements.wrapAll('<ul></ul>');
+									// Update content into input field
+									jQuery( e.target ).closest( 'form' ).find( '#bbp_forum_content' ).val( window.forums_medium_forum_editor[key].getContent() );
+								}
+							});
+
 							if ( ! _.isUndefined( BP_Nouveau.forums.params.link_preview ) && BP_Nouveau.forums.params.link_preview ) {
 								var bbp_forum_content = jQuery(element).closest('form').find( '#bbp_forum_content' );
 								var form = jQuery(element).closest( 'form' );
@@ -713,6 +745,18 @@ jQuery( document ).ready(
 								}
 							);
 
+							window.forums_medium_reply_editor[key].subscribe( 'editablePaste', function ( e ) {
+								// Wrap all target <li> elements in a single <ul>
+								var targetLiElements = jQuery(e.target).find('li').filter(function() {
+									return !jQuery(this).parent().is('ul') && !jQuery(this).parent().is('ol');
+								});
+								if (targetLiElements.length > 0) {
+									targetLiElements.wrapAll('<ul></ul>');
+									// Update content into input field
+									jQuery( e.target ).closest( 'form' ).find( '#bbp_reply_content' ).val( window.forums_medium_reply_editor[key].getContent() );
+								}
+							});
+
 							if ( ! _.isUndefined( BP_Nouveau.forums.params.link_preview ) && BP_Nouveau.forums.params.link_preview ) {
 								var bbp_reply_content = jQuery(element).closest('form').find( '#bbp_reply_content' );
 								var form = jQuery(element).closest( 'form' );
@@ -815,6 +859,18 @@ jQuery( document ).ready(
 									}
 								}
 							);
+
+							window.forums_medium_topic_editor[key].subscribe( 'editablePaste', function ( e ) {
+								// Wrap all target <li> elements in a single <ul>
+								var targetLiElements = jQuery(e.target).find('li').filter(function() {
+									return !jQuery(this).parent().is('ul') && !jQuery(this).parent().is('ol');
+								});
+								if (targetLiElements.length > 0) {
+									targetLiElements.wrapAll('<ul></ul>');
+									// Update content into input field
+									jQuery( e.target ).closest( 'form' ).find( '#bbp_topic_content' ).val( window.forums_medium_topic_editor[key].getContent() );
+								}
+							});
 
 							if ( ! _.isUndefined( BP_Nouveau.forums.params.link_preview ) && BP_Nouveau.forums.params.link_preview ) {
 								var bbp_topic_content = jQuery(element).closest('form').find( '#bbp_topic_content' );

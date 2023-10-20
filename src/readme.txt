@@ -1,9 +1,9 @@
 === BuddyBoss Platform ===
 Contributors: buddyboss
 Requires at least: 4.9.1
-Tested up to: 6.2.2
+Tested up to: 6.3.2
 Requires PHP: 5.6.20
-Stable tag: 2.4.10
+Stable tag: 2.4.50
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,100 @@ Furthermore, BuddyBoss Platform can be activated and operate in just about any s
 * Extend BuddyBoss Platform with a third-party multi-network plugin to allow each site or network to have an isolated and dedicated community, all from the same WordPress installation.
 
 == Changelog ==
+
+= 2.4.50 =
+* Enhancement: Core - Background process logic for reactions updated
+* Enhancement: Media - Provide mechanism to search media by description in the directory and global search
+* Enhancement: Profiles - Added TikTok to Social Network Links
+* Bug: Activity - Issues were found with tagging more than 1 member in activity post's comments
+* Bug: Activity - When activity tabs and the relevant activity setting was turned on, users were unable to see their own posts on the activity feed.
+* Bug: Core - Adding a photo was not working from the user profile, Select Photo tab in Albums
+* Bug: Core - Changing passwords from the account page was not working
+* Bug: Core - Remove connection confirmation pop up was showing twice one after another
+* Bug: Forums - Changing a Forums privacy setting from public to private, the forum would automatically revert back to public
+* Bug: Forums - If a Forums page was not set then Forums content was populating the Blog page
+* Bug: Forums - When moving a discussion from group forum back to standalone forum, the discussion remained in the group
+* Bug: Forums - Youtube links were not shown correctly in forum topic replies with / without additional text
+* Bug: Messages - Emoji on messaging were not working properly
+* Bug: Messages - When sending a group message, the recipient text box was clickable and showed the text box
+* Bug: Multisite - BuddyBoss default users import is causing a Fatal error in MultiSite
+* Bug: Notifications - Notification were being sent when user created a reply even after the user had then left a hidden or private group
+* Bug: Platform - New notification message added to Media settings Direct access when direct access to media is blocked by Offload Media
+* Bug: Profiles - shortcode: [group type=”competition”], from BuddyPress User Profile Tab Creator Pro the cover image on the profile was not displaying
+* Bug: Report - Typo error in Report/Block member menu in the message sidebar for single private message
+* Bug: Styling - Search Form reset button styling issue when inviting users during group creation process on the frontend
+* Bug: Translations - Translation issue in Loco Translate with translations switching back to English
+* Bug: Widgets - Some strings were not able to translate dashboard widget
+
+= 2.4.41 =
+* Bug: Activity - When commenting or replying to a comment on a post some users were seeing “Server error or connection is lost. Please try again later." message
+* Bug: Core - When selecting to generate members unique identifier (profile url), the process was causing a crash due to a background code issue which has now bee refactored
+
+= 2.4.40 =
+* New Feature! - Allow users to Edit Activity Comments
+* Bug: Activity - Activity search : Search results are getting incorrect.
+* Bug: Activity - Video uploading issue on Activity feed due to missing video thumbnail
+* Bug: Core - "Relaxed" Emoji is not showing correctly
+* Bug: Core - Added a 'Successfully Saved' message in the plugin when saving settings
+* Bug: Core - Fatal error when registering users with Magyar language selected
+* Bug: Core - Profile, photos tab was showing delete and select all buttons even with no uploaded media
+* Bug: Core - Text Smilies were not converting to emojis when first added in discussions reply.
+* Bug: Core - Wordpress dashboard shown in mobile size, profile dropdown arrow in admin bar would position incorrectly
+* Bug: Custom Development - 'groups_join_group' hook not called when member is added to BuddyBoss Group via LearnDash sync
+* Bug: Forums - Changing the parent forum from backend was not working for the forums that is associated with groups
+* Bug: Forums - Discussion shortcodes not returning the correct results
+* Bug: Groups - Subscription emails were delayed when saving the new group feed and updating the group details in frontend
+* Bug: Groups - When subgroup restrict access setting is active a new message alerting users to first request access to the parent group will appear if a user tries to access a subgroup first
+* Bug: LearnDash - Undefined variable $post warning in LearnDash topics removed
+* Bug: Messages - Image link was broken for Messages in Email
+* Bug: Multisite - Profile search page is not working in admin area if platform is network activated
+* Bug: The Events Calendar - When the private website option is enabled from the BuddyBoss platform, the filters in the Events Calendar was not working
+* Bug: Widgets - Who’s Online widget was not accurately showing members online status
+
+= 2.4.30 =
+* Enhancement: Activity - database alterations made in preparations for future activity features
+* Enhancement: Core - Allow options within the new blacklist/whitelist feature so that user can block the email plus aliases.
+* Enhancement: Forums - Automatically reconnect an existing forum when reenabling the forum within a group
+* Bug: Core - API issues addressed when activating BuddyBoss platform plugin
+* Bug: Core - Design issue when posting a discussion when using Firefox browser
+* Bug: Core - Pagination problem occurred on pages where the group type shortcode was used
+* Bug: Core - Paging was disabled when fetching media, videos and documents based on specific ids
+* Bug: Forums - Add direct link for the grouped forum instead on the Discussions links to removed the unnecessary redirect
+* Bug: Forums - Discussions pagination was not working when setting the forum page as the home page
+* Bug: Forums - Forum was not importing from Invision
+* Bug: Groups - When Group Message feature is disbaled, existing messages associated to groups are now removed from users inbox
+* Bug: Messages - Attached media in a group message sent by a group member was not viewable by other members
+* Bug: Messages - Messages thread order was not staying in the correct order when paginating
+* Bug: Multisite - BuddyBoss component pages were not assigned correctly across the subsites
+* Bug: Profiles - Pending signup user profile were visible on the frontend in some cases
+* Bug: Profiles - Removed Google+ from 'Social Networks' profile field
+* Bug: Profiles - Update Twitter name to X on all Social Links
+* Bug: Tools - SMF forum import tool could not keep the hierarchical relationships between forum > discussion > reply
+
+= 2.4.20 =
+* Enhancement: Core - The Background Process working when suspending and un-suspending users got stuck creating an infinite loop
+* Enhancement: Custom Development - Add the missing hooks into the Activity Comments
+* Bug: Activity - New Activity Post ‘Privacy’ option had white spacing above the options
+* Bug: Activity - When editing a posts Giff within Discussion or Discussion reply, the Giff still remained in the Activity Feed.
+* Bug: Core - Add default parameters and documentation to media, documents and videos "get" functions
+* Bug: Core - Display name setting code correction
+* Bug: Core - Fix typo in the core template
+* Bug: Core - Hyperlink was not working in the Safari browser on Activity feed posts
+* Bug: Core - Profile field "website" did not check for URL validation
+* Bug: Core - Removed the unsupported URL preview that WordPress Embed shows when not supporting to just showing the link in this case
+* Bug: Core - When WP DEBUG is turned on with Error Display on, this displayed warning on the "Admin" Profile page
+* Bug: Forums - When adding YouTube link before text caused the preview to glitch
+* Bug: Forums - Forum and discussion Image Missing in Email
+* Bug: Forums - Multilevel Forums were not displaying correctly on BB Forums List widget.
+* Bug: Forums - Topic in hidden/private forum is still visible within the users profile
+* Bug: Forums - URL previews were not showing correctly for both topics and replies.
+* Bug: Forums - When going back to a draft post then the ‘Post’ button would be greyed out
+* Bug: Media - When leaving a Private or Hidden groups, users stall had permissions to upload and download media from that group
+* Bug: Messages - Message inbox the mark as Unread/Read option was showing different in the message to the sidebar ellipses option
+* Bug: Notifications - Deleted group posts still showed the Notification and return Not Found
+
+= 2.4.11 =
+* New Feature! - This new 'Restrict Registration' feature allows you to restrict or allow specific email or domains from registering on your site
 
 = 2.4.10 =
 * Bug: Activity - If a link contains a @user mention, the rest of the link was being cut off

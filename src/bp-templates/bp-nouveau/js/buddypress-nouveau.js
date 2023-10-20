@@ -1969,7 +1969,14 @@ window.bp = window.bp || {};
 			}
 
 			// show popup if it is is_friend action.
-			var remove_connection_popup = $( '.bb-remove-connection' );
+			var remove_connection_popup = {};
+			if ( $( target ).closest( '#item-header' ).length ) {
+				remove_connection_popup = $( '#item-header .bb-remove-connection' );
+			} else if ( $( target ).closest( '.members[data-bp-list="members"]' ).length ) {
+				remove_connection_popup = $( '.members[data-bp-list="members"] .bb-remove-connection' );
+			} else if ( $( target ).closest( '.group_members[data-bp-list="group_members"]' ).length ) {
+				remove_connection_popup = $( '.group_members[data-bp-list="group_members"] .bb-remove-connection' );
+			}
 			var member__name            = $( target ).data( 'bb-user-name' );
 			var member_link             = $( target ).data( 'bb-user-link' );
 			if ( 'is_friend' === action && 'opened' !== $( target ).attr( 'data-popup-shown' ) ) {
@@ -1984,8 +1991,10 @@ window.bp = window.bp || {};
 			} else {
 				$( 'body' ).find( '[data-popup-shown="opened"]' ).attr( 'data-popup-shown' , 'closed' );
 				$( 'body' ).find( '[data-current-anchor="true"]' ).attr( 'data-current-anchor' , 'false' );
-				remove_connection_popup.find( '.bb-remove-connection-content .bb-user-name' ).html( '' );
-				remove_connection_popup.hide();
+				if ( remove_connection_popup.length ) {
+					remove_connection_popup.find('.bb-remove-connection-content .bb-user-name').html('');
+					remove_connection_popup.hide();
+				}
 			}
 
 			// Find the required wpnonce string.
@@ -3248,6 +3257,7 @@ window.bp = window.bp || {};
 										$( file.previewElement ).closest( '.dz-preview' ).addClass( 'dz-has-no-thumbnail' );
 										clearInterval( timer );
 									}
+									attempts++;
 								}
 								return success;
 							};
@@ -3859,6 +3869,10 @@ window.bp = window.bp || {};
 
 				$( self.currentPreviewParent ).on( 'click', '#bb-close-link-suggestion', function( e ) {
 					e.preventDefault();
+
+					// Remove the link preview for the draft too.
+					$( '#bb_link_url' ).val('');
+
 					// Set default values.
 					Object.assign( self.options, {
 						link_success: false,
@@ -4039,6 +4053,18 @@ window.bp = window.bp || {};
 
 			loadURLPreview: function ( url ) {
 				var self = this;
+
+				// Already same preview then return.
+				if ( 'undefined' !== typeof self.dataInput && '' !== self.dataInput.val() ) {
+					var old_preview_data = JSON.parse( self.dataInput.val() );
+					if (
+						'undefined' !== typeof old_preview_data.link_url &&
+						'' !== old_preview_data.link_url &&
+						url === old_preview_data.link_url
+					) {
+						return;
+					}
+				}
 
 				var regexp = /^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,24}(:[0-9]{1,5})?(\/.*)?$/;
 				url        = $.trim( url );

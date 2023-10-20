@@ -1453,6 +1453,34 @@ window.bp = window.bp || {};
 				$( '#no-messages-archived-link' ).addClass( 'bp-hide' );
 				$( '#no-messages-unarchived-link' ).removeClass( 'bp-hide' );
 			}
+		},
+
+		getCurrentThreadUrl: function() {
+			return Backbone.history.getFragment().split(/[?#]/)[0];
+		},
+
+		updateReadUnreadLink: function( threadId ) {
+
+			if ( !threadId ) {
+				return;
+			}
+
+			var read_unread_div = $( '.message_action__list[data-bp-thread-id="' + threadId + '"]' ),
+				read_unread = read_unread_div.find( '[data-bp-action="read"]' );
+
+			if (
+				_.isUndefined( read_unread.length ) ||
+				(
+					!_.isUndefined( read_unread.length ) &&
+					0 === read_unread.length
+				)
+			) {
+				read_unread = read_unread_div.find( '[data-bp-action="unread"]' );
+			}
+
+			read_unread.data( 'bp-action', 'unread' );
+			read_unread.html( read_unread.data( 'mark-unread-text' ) );
+			read_unread.parent( 'li' ).removeClass( 'read' ).addClass( 'unread' );
 		}
 	};
 
@@ -2283,6 +2311,18 @@ window.bp = window.bp || {};
 						} );
 					}
 
+					bp.Nouveau.Messages.mediumEditor.subscribe( 'editablePaste', function ( e ) {
+						setTimeout( function() {
+							// Wrap all target <li> elements in a single <ul>
+							var targetLiElements = $(e.target).find('li').filter(function() {
+								return !$(this).parent().is('ul') && !$(this).parent().is('ol');
+							});
+							if (targetLiElements.length > 0) {
+								targetLiElements.wrapAll('<ul></ul>');
+							}
+						}, 0 );
+					});
+
 					$( document ).on( 'keyup', '.bp-messages-content .medium-editor-toolbar-input', function ( event ) {
 
 						var URL = event.target.value;
@@ -2320,39 +2360,6 @@ window.bp = window.bp || {};
 									emojibtn_click: function () {
 										$( '#message_content' )[0].emojioneArea.hidePicker();
 										bp.Nouveau.Messages.mediumEditor.checkContentChanged();
-
-										// When add new emoji without any content then it was adding without p tag. It should be add within p tag.
-										if ( window.getSelection && document.createRange ) {
-											var sel = window.getSelection && window.getSelection();
-											if ( sel && sel.rangeCount > 0 ) {
-												window.messageCaretPosition = sel.getRangeAt( 0 );
-											}
-										} else {
-											window.messageCaretPosition = document.selection.createRange();
-										}
-
-										if ( 'undefined' !== typeof window.messageCaretPosition.commonAncestorContainer.classList &&
-											window.messageCaretPosition.commonAncestorContainer.classList.contains( 'medium-editor-element' ) ) {
-											var content = '<p>' + bp.Nouveau.Messages.mediumEditor.getContent() + '</p>';
-											bp.Nouveau.Messages.mediumEditor.setContent( content );
-											bp.Nouveau.Messages.mediumEditor.checkContentChanged();
-
-											if ( window.getSelection && document.createRange ) {
-												var range = document.createRange();
-												range.setStart( window.messageCaretPosition.startContainer, window.messageCaretPosition.startOffset + 1 );
-												range.setEnd( window.messageCaretPosition.endContainer, window.messageCaretPosition.endOffset + 1 );
-												var getSelection = window.getSelection();
-												getSelection.removeAllRanges();
-												getSelection.addRange( range );
-											} else {
-												var textRange = document.body.createTextRange();
-												textRange.moveToElementText( $( '#message_content' )[0] );
-												textRange.setStart( window.messageCaretPosition.startContainer, window.messageCaretPosition.startOffset + 1 );
-												textRange.setEnd( window.messageCaretPosition.endContainer, window.messageCaretPosition.endOffset + 1 );
-												textRange.select();
-											}
-											window.messageCaretPosition = '';
-										}
 
 										// Enable submit button.
 										$( '#bp-message-content' ).addClass( 'focus-in--content' );
@@ -2452,8 +2459,9 @@ window.bp = window.bp || {};
 						formData.append( 'action', 'media_upload' );
 						formData.append( '_wpnonce', BP_Nouveau.nonces.media );
 
-						var parts = Backbone.history.getFragment().split( '/' );
-						var newArray = $.map( parts, function ( v ) {
+						var url       = bp.Nouveau.Messages.getCurrentThreadUrl();
+						var parts     = url.split( '/' );
+						var newArray  = $.map( parts, function ( v ) {
 							return v === '' ? null : v;
 						} );
 						var thread_id = newArray.pop();
@@ -2669,8 +2677,9 @@ window.bp = window.bp || {};
 						formData.append( 'action', 'document_document_upload' );
 						formData.append( '_wpnonce', BP_Nouveau.nonces.media );
 
-						var parts = Backbone.history.getFragment().split( '/' );
-						var newArray = $.map( parts, function ( v ) {
+						var url       = bp.Nouveau.Messages.getCurrentThreadUrl();
+						var parts     = url.split( '/' );
+						var newArray  = $.map( parts, function ( v ) {
 							return v === '' ? null : v;
 						} );
 						var thread_id = newArray.pop();
@@ -2898,8 +2907,9 @@ window.bp = window.bp || {};
 						formData.append( 'action', 'video_upload' );
 						formData.append( '_wpnonce', BP_Nouveau.nonces.video );
 
-						var parts = Backbone.history.getFragment().split( '/' );
-						var newArray = $.map( parts, function ( v ) {
+						var url       = bp.Nouveau.Messages.getCurrentThreadUrl();
+						var parts     = url.split( '/' );
+						var newArray  = $.map( parts, function ( v ) {
 							return v === '' ? null : v;
 						} );
 						var thread_id = newArray.pop();
@@ -4271,6 +4281,8 @@ window.bp = window.bp || {};
 				if ( '' !== updatedThread ) {
 					var threads = bp.Nouveau.Messages.threads.parse( { threads: [ updatedThread ] } );
 					bp.Nouveau.Messages.threads.unshift( _.first( threads ) );
+					bp.Nouveau.Messages.updateReadUnreadLink( response.thread_id );
+
 					if (
 						'undefined' !== typeof bp.Pusher_FrontCommon &&
 						'function' === typeof bp.Pusher_FrontCommon.updateOnlineStatus
@@ -5360,7 +5372,11 @@ window.bp = window.bp || {};
 				// add scroll event for the auto load messages without user having to click the button.
 				$( '#bp-message-thread-list' ).on( 'scroll', this.messages_scrolled );
 
-				if ( 0 !== parseInt( this.options.thread.get( 'group_id' ) ) && 'private' !== this.options.thread.get( 'group_message_type' ) ) {
+				if (
+					0 !== parseInt( this.options.thread.get( 'group_id' ) ) &&
+					'open' === this.options.thread.get( 'group_message_type' ) &&
+					'all' === this.options.thread.get( 'group_message_users' )
+				) {
 					this.model.set( 'is_group', true );
 				}
 				this.messageAttachments = new bp.Views.MessagesAttachments( { model: this.model } );
@@ -5857,6 +5873,9 @@ window.bp = window.bp || {};
 				);
 
 				$( 'body' ).removeClass( 'compose' ).removeClass( 'inbox' ).addClass( 'view' );
+
+				// Update the unread message thread action link when the user views the current message thread.
+				bp.Nouveau.Messages.updateReadUnreadLink( thread_id );
 			},
 
 			starredView: function() {

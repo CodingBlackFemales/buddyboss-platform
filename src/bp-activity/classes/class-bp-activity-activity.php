@@ -487,7 +487,7 @@ class BP_Activity_Activity {
 		// Searching.
 		if ( $r['search_terms'] ) {
 			$search_terms_like              = '%' . bp_esc_like( $r['search_terms'] ) . '%';
-			$where_conditions['search_sql'] = $wpdb->prepare( 'a.content LIKE %s', $search_terms_like );
+			$where_conditions['search_sql'] = $wpdb->prepare( 'ExtractValue( a.content, "//text()" ) LIKE %s', $search_terms_like );
 
 			/**
 			 * Filters whether or not to include users for search parameters.
@@ -1207,7 +1207,7 @@ class BP_Activity_Activity {
 
 		$bp = buddypress();
 
-		$where_args = false;
+		$where_args = array();
 
 		if ( ! empty( $user_id ) ) {
 			$where_args[] = $wpdb->prepare( 'user_id = %d', $user_id );
@@ -1648,25 +1648,31 @@ class BP_Activity_Activity {
 				/**
 				 * Filters the MySQL From query for legacy activity comment.
 				 *
-                 * @since BuddyBoss 1.5.6
+				 * @since BuddyBoss 1.5.6
 				 *
 				 * @param string $from Activity Comment from query
-				 *
 				 */
 				$sql['from'] = apply_filters( 'bp_activity_comments_get_join_sql', $sql['from'] );
 
 				/**
 				 * Filters the MySQL Where query for legacy activity comment.
 				 *
-                 * @since BuddyBoss 1.5.6
+				 * @since BuddyBoss 1.5.6
 				 *
 				 * @param string $where Activity Comment from query
-				 *
 				 */
 				$sql['where'] = apply_filters( 'bp_activity_comments_get_where_conditions', $sql['where'] );
 
-				$sql = "{$sql['select']} {$sql['from']} {$sql['where']} {$sql['misc']}";
+				/**
+				 * Filters the MySQL From query for order by activity comment.
+				 *
+				 * @since BuddyBoss 2.4.20
+				 *
+				 * @param string $misc Activity Comment from query
+				 */
+				$sql['misc'] = apply_filters( 'bp_activity_comments_get_misc_sql', $sql['misc'] );
 
+				$sql = "{$sql['select']} {$sql['from']} {$sql['where']} {$sql['misc']}";
 				$sql = $wpdb->prepare( $sql, $top_level_parent_id, $left, $right );
 
 				$descendant_ids = $wpdb->get_col( $sql );

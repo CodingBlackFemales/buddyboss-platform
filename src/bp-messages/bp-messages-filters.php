@@ -284,6 +284,8 @@ function bp_group_messages_groups_membership_accepted( $user_id, $group_id, $acc
 		);
 		bp_messages_update_meta( $last_message->id, 'group_message_group_joined_users', array( $joined_user ) );
 		bp_messages_update_meta( $last_message->id, 'group_message_group_joined', 'yes' );
+		bp_messages_update_meta( $last_message->id, 'group_message_users', 'all' );
+		bp_messages_update_meta( $last_message->id, 'group_message_type', 'open' );
 	}
 }
 
@@ -419,6 +421,8 @@ function bp_group_messages_join_new_member( $group_id, $user_id ) {
 
 		$last_message = BP_Messages_Thread::get_last_message( $group_thread );
 		bp_messages_update_meta( $last_message->id, 'group_message_group_joined', 'yes' );
+		bp_messages_update_meta( $last_message->id, 'group_message_users', 'all' );
+		bp_messages_update_meta( $last_message->id, 'group_message_type', 'open' );
 		bp_messages_update_meta( $last_message->id, 'group_id', $group_id );
 		$joined_user = array(
 			'user_id' => $user_id,
@@ -476,6 +480,8 @@ function bp_group_messages_remove_group_member_from_thread( $group_id, $user_id 
 		$last_message = BP_Messages_Thread::get_last_message( $group_thread );
 		bp_messages_update_meta( $last_message->id, 'group_id', $group_id );
 		bp_messages_update_meta( $last_message->id, 'group_message_group_left', 'yes' );
+		bp_messages_update_meta( $last_message->id, 'group_message_users', 'all' );
+		bp_messages_update_meta( $last_message->id, 'group_message_type', 'open' );
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$bp->messages->table_name_recipients} WHERE user_id = %d AND thread_id = %d", $user_id, (int) $group_thread ) );
 		$left_user = array(
 			'user_id' => $user_id,
@@ -536,6 +542,8 @@ function bp_group_messages_accept_new_member( $user_id, $group_id ) {
 
 		$last_message = BP_Messages_Thread::get_last_message( $group_thread );
 		bp_messages_update_meta( $last_message->id, 'group_message_group_joined', 'yes' );
+		bp_messages_update_meta( $last_message->id, 'group_message_users', 'all' );
+		bp_messages_update_meta( $last_message->id, 'group_message_type', 'open' );
 		bp_messages_update_meta( $last_message->id, 'group_id', $group_id );
 		$joined_user = array(
 			'user_id' => $user_id,
@@ -668,69 +676,6 @@ function bp_group_messages_unbanned_member( $group_id, $user_id ) {
 }
 
 /**
- * Remove member to Group thread when h/she joined the group.
- *
- * @since BuddyBoss 1.3.0
- *
- * @param int $group_id Group id.
- * @param int $user_id  User id.
- */
-function bp_messages_add_user_to_group_message_thread( $group_id, $user_id ) {
-
-	global $wpdb, $bp;
-
-	// Add Member to group messages thread.
-	if ( true === bp_disable_group_messages() && bp_is_active( 'messages' ) ) {
-
-		$group_thread = (int) groups_get_groupmeta( (int) $group_id, 'group_message_thread' );
-
-		$recipients = BP_Messages_Thread::get_recipients_for_thread( (int) $group_thread );
-		$recipients = wp_list_pluck( $recipients, 'user_id' );
-		if ( $group_thread > 0 && ! in_array( (int) $user_id, $recipients, true ) ) {
-
-			$first_message     = BP_Messages_Thread::get_first_message( $group_thread );
-			$message_users_ids = bp_messages_get_meta( $first_message->id, 'message_users_ids', true ); // users list.
-			$message_users_ids = explode( ',', $message_users_ids );
-			array_push( $message_users_ids, $user_id );
-
-			bp_messages_update_meta( $first_message->id, 'message_users_ids', implode( ',', $message_users_ids ) );
-
-			$wpdb->query( $wpdb->prepare( "INSERT INTO {$bp->messages->table_name_recipients} ( user_id, thread_id, unread_count ) VALUES ( %d, %d, 0 )", $user_id, $group_thread ) );
-
-			if ( bb_is_last_message_group_join_message( $group_thread, $user_id ) ) {
-				return;
-			}
-
-			remove_action( 'messages_message_sent', 'messages_notification_new_message', 10 );
-			remove_action( 'messages_message_sent', 'bp_messages_message_sent_add_notification', 10 );
-			$new_reply = messages_new_message(
-				array(
-					'thread_id'  => $group_thread,
-					'sender_id'  => $user_id,
-					'subject'    => false,
-					'content'    => '<p> </p>',
-					'date_sent'  => bp_core_current_time(),
-					'error_type' => 'wp_error',
-					'mark_read'  => true,
-				)
-			);
-			add_action( 'messages_message_sent', 'messages_notification_new_message', 10 );
-			add_action( 'messages_message_sent', 'bp_messages_message_sent_add_notification', 10 );
-
-			$last_message = BP_Messages_Thread::get_last_message( $group_thread );
-			bp_messages_update_meta( $last_message->id, 'group_message_group_joined', 'yes' );
-			bp_messages_update_meta( $last_message->id, 'group_id', $group_id );
-			$joined_user = array(
-				'user_id' => $user_id,
-				'time'    => bp_core_current_time(),
-			);
-			bp_messages_update_meta( $last_message->id, 'group_message_group_joined_users', array( $joined_user ) );
-		}
-	}
-
-}
-
-/**
  * Add member to Group thread when h/she joined the group.
  *
  * @since BuddyBoss 1.3.0
@@ -782,6 +727,9 @@ function bp_messages_remove_user_to_group_message_thread( $group_id, $user_id ) 
 			$last_message = BP_Messages_Thread::get_last_message( $group_thread );
 			bp_messages_update_meta( $last_message->id, 'group_message_group_left', 'yes' );
 			bp_messages_update_meta( $last_message->id, 'group_id', $group_id );
+			bp_messages_update_meta( $last_message->id, 'group_message_users', 'all' );
+			bp_messages_update_meta( $last_message->id, 'group_message_type', 'open' );
+
 			$wpdb->query( $wpdb->prepare( "DELETE FROM {$bp->messages->table_name_recipients} WHERE user_id = %d AND thread_id = %d", $user_id, (int) $group_thread ) );
 			$left_user = array(
 				'user_id' => $user_id,
@@ -1206,26 +1154,28 @@ function bb_digest_message_email_notifications() {
 					$min_count_recipients = function_exists( 'bb_email_queue_has_min_count' ) && bb_email_queue_has_min_count( (array) $thread['recipients'] );
 
 					if ( function_exists( 'bb_is_email_queue' ) && bb_is_email_queue() && $min_count_recipients ) {
-						global $bb_email_background_updater;
+						global $bb_background_updater;
 
 						$chunk_recipient_array = array_chunk( $thread['recipients'], bb_get_email_queue_min_count() );
 
 						if ( ! empty( $chunk_recipient_array ) ) {
 							foreach ( $chunk_recipient_array as $chunk_recipient ) {
-								$bb_email_background_updater->data(
+								$bb_background_updater->data(
 									array(
-										array(
-											'callback' => 'bb_render_digest_messages_template',
-											'args'     => array(
-												$chunk_recipient,
-												$thread['thread_id'],
-											),
+										'type'     => 'email',
+										'group'    => 'digest_email_messages',
+										'data_id'  => $thread['thread_id'],
+										'priority' => 5,
+										'callback' => 'bb_render_digest_messages_template',
+										'args'     => array(
+											$chunk_recipient,
+											$thread['thread_id'],
 										),
-									)
+									),
 								);
-								$bb_email_background_updater->save();
+								$bb_background_updater->save();
 							}
-							$bb_email_background_updater->dispatch();
+							$bb_background_updater->dispatch();
 						}
 					} else {
 						bb_render_digest_messages_template( $thread['recipients'], $thread['thread_id'] );
