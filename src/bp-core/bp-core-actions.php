@@ -918,8 +918,12 @@ function bb_mention_post_type_comment( $comment_id = 0, $is_approved = true ) {
 
 	// Replace @mention text with userlinks.
 	foreach ( (array) $usernames as $user_id => $username ) {
-		$pattern = '/(?<=[^A-Za-z0-9\_\/\.\-\*\+\=\%\$\#\?]|^)@' . preg_quote( $username, '/' ) . '\b(?!\/)/';
-		$post_type_comment->comment_content = preg_replace( $pattern, "<a class='bp-suggestions-mention' href='" . bp_core_get_user_domain( $user_id ) . "' rel='nofollow'>@$username</a>", $post_type_comment->comment_content );
+		$replacement = "<a class='bp-suggestions-mention' href='{{mention_user_id_" . $user_id . "}}' rel='nofollow'>@$username</a>";
+		if ( false === strpos( $post_type_comment->comment_content, $replacement ) ) {
+			// Pattern for cases with existing <a>@mention</a> or @mention.
+			$pattern                            = '/(?<=[^A-Za-z0-9\_\/\.\-\*\+\=\%\$\#\?]|^)@' . preg_quote( $username, '/' ) . '(?!\/)|<a[^>]*>@' . preg_quote( $username, '/' ) . '<\/a>/';
+			$post_type_comment->comment_content = preg_replace( $pattern, $replacement, $post_type_comment->comment_content );
+		}
 	}
 
 	// Send @mentions and setup BP notifications.
@@ -1046,3 +1050,122 @@ function bb_core_registered_notification_components( $component_names ) {
 }
 
 add_action( 'bp_notifications_get_registered_components', 'bb_core_registered_notification_components', 20, 1 );
+
+/**
+ * Removed duplicate background jobs from the table if exists.
+ *
+ * @since BuddyBoss 2.4.70
+ *
+ * @param object $batch Batch object.
+ *
+ * @return void
+ */
+function bb_background_remove_duplicate_async_request_batch_process( $batch ) {
+	global $bb_background_updater, $wpdb;
+
+	if (
+		empty( $batch ) ||
+		! property_exists( $batch, 'group' ) ||
+		empty( $batch->group ) ||
+		empty( $batch->data ) ||
+		empty( $batch->data['args'] )
+	) {
+		return;
+	}
+
+	$table_name = $bb_background_updater::$table_name;
+
+	$del_sql = $wpdb->prepare(
+		"DELETE FROM {$table_name} WHERE `type` = %s AND `group` = %s AND `data_id` = %s AND `secondary_data_id` = %s AND `data` = %s AND `priority` = %d AND `blog_id` = %d AND `id` != %d",
+		array(
+			$batch->type,
+			$batch->group,
+			$batch->item_id,
+			$batch->secondary_id,
+			maybe_serialize( $batch->data ),
+			$batch->priority,
+			$batch->blog_id,
+			$batch->key,
+		)
+	);
+
+	$wpdb->query( $del_sql );
+}
+
+add_action( 'bb_async_request_batch_process', 'bb_background_remove_duplicate_async_request_batch_process', 1, 1 );
+
+/**
+ * Save directory layout settings for BuddyBoss.
+ * This function handles the AJAX request to save directory layout settings for BuddyBoss.
+ * It verifies the nonce, checks for valid options and values, and stores
+ * the layout option in the database or cookie.
+ *
+ * @since BuddyBoss 2.5.11
+ */
+function buddyboss_directory_save_layout() {
+	$object = bb_filter_input_string( INPUT_POST, 'object' );
+	if ( empty( $object ) ) {
+		wp_send_json_error( array(
+			'message' => __( 'Invalid object.', 'buddyboss' ),
+		) );
+	}
+
+	$nonce = bb_filter_input_string( INPUT_POST, 'nonce' );
+	if ( ! wp_verify_nonce( $nonce, 'bp_nouveau_' . $object ) ) {
+		wp_send_json_error( array(
+			'message' => __( 'Invalid request.', 'buddyboss' ),
+		) );
+	}
+
+	$option_name = bb_filter_input_string( INPUT_POST, 'option' );
+	if ( empty( $option_name ) || 'bb_layout_view' !== $option_name ) {
+		wp_send_json_error( array(
+			'message' => __( 'Not a valid option', 'buddyboss' ),
+		) );
+		wp_die();
+	}
+
+	$option_value = bb_filter_input_string( INPUT_POST, 'type' );
+	if ( ! in_array( $option_value, array( 'grid', 'list' ), true ) ) {
+		wp_send_json_error( array(
+			'message' => __( 'Not a valid value', 'buddyboss' ),
+		) );
+		wp_die();
+	}
+
+	if ( 'group_members' === $object ) {
+		$object = 'members';
+	}
+
+	if ( is_user_logged_in() ) {
+		$existing_layout = get_user_meta( get_current_user_id(), $option_name, true );
+		$existing_layout = ! empty( $existing_layout ) ? $existing_layout : array();
+		// Store layout option in the db.
+		$existing_layout[ $object ] = $option_value;
+		update_user_meta( get_current_user_id(), $option_name, $existing_layout );
+	} else {
+		$existing_layout = ! empty( $_COOKIE[ $option_name ] ) ? json_decode( rawurldecode( $_COOKIE[ $option_name ] ), true ) : array();
+		// Store layout option in the cookie.
+		$existing_layout[ $object ] = $option_value;
+		setcookie( $option_name, rawurlencode( wp_json_encode( $existing_layout ) ), time() + 31556926, '/', COOKIE_DOMAIN, false, false );
+	}
+
+	wp_send_json_success();
+	wp_die();
+}
+
+add_action( 'wp_ajax_buddyboss_directory_save_layout', 'buddyboss_directory_save_layout' );
+add_action( 'wp_ajax_nopriv_buddyboss_directory_save_layout', 'buddyboss_directory_save_layout' );
+
+/**
+ * Function to load background process log class.
+ *
+ * @since BuddyBoss 2.5.60
+ */
+function bb_bg_process_log_load() {
+	if ( class_exists( 'BB_BG_Process_Log' ) ) {
+		BB_BG_Process_Log::instance();
+	}
+}
+
+add_action( 'bp_init', 'bb_bg_process_log_load' );

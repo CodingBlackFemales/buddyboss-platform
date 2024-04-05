@@ -290,9 +290,10 @@ function bp_nouveau_ajax_joinleave_group() {
 				$bp_is_group = bp_is_group() || ( bp_is_user_groups() && bp_is_my_profile() );
 
 				$response = array(
-					'contents' => bp_get_group_join_button( $group ),
-					'is_group' => $bp_is_group,
-					'type'     => 'success',
+					'contents'  => bp_get_group_join_button( $group ),
+					'is_group'  => $bp_is_group,
+					'is_parent' => ! empty( bp_get_descendent_groups( $group->id ) ) ? true : false,
+					'type'      => 'success',
 				);
 
 				if ( 'hidden' === $group->status ) {
@@ -1767,10 +1768,11 @@ function bp_nouveau_ajax_groups_send_message() {
 			// This post variable will use in "bp_media_messages_save_group_data" function for storing message meta "message_users_ids".
 			$_POST['message_meta_users_list'] = $message_users_ids;
 
-			if ( ! ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) ) {
-				$chunk_members = array_chunk( $members, bb_get_email_queue_min_count() );
+			$min_count = bb_get_email_queue_min_count();
+			if ( count( $members ) > $min_count ) {
+				$chunk_members = array_chunk( $members, $min_count );
 				if ( ! empty( $chunk_members ) ) {
-					foreach ( $chunk_members as $key => $members ) {
+					foreach ( $chunk_members as $members ) {
 						$bb_background_updater->data(
 							array(
 								'type'     => 'email',

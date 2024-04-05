@@ -659,9 +659,15 @@ class BP_XProfile_Group {
 
 		// Integer casting.
 		foreach ( (array) $groups as $key => $data ) {
-			$groups[ $key ]->id          = (int) $groups[ $key ]->id;
-			$groups[ $key ]->group_order = (int) $groups[ $key ]->group_order;
-			$groups[ $key ]->can_delete  = (int) $groups[ $key ]->can_delete;
+			if ( isset( $groups[ $key ]->id ) ) {
+				$groups[ $key ]->id = (int) $groups[ $key ]->id;
+			}
+			if ( isset( $groups[ $key ]->group_order ) ) {
+				$groups[ $key ]->group_order = (int) $groups[ $key ]->group_order;
+			}
+			if ( isset( $groups[ $key ]->can_delete ) ) {
+				$groups[ $key ]->can_delete = (int) $groups[ $key ]->can_delete;
+			}
 		}
 
 		// Reset indexes & return.
@@ -920,7 +926,7 @@ class BP_XProfile_Group {
 										esc_html_e( 'Add description', 'buddyboss' );
 									?>
 									</label>
-									<textarea name="group_description" id="group_description" rows="8" cols="60"><?php echo esc_textarea( $this->description ); ?></textarea>
+									<textarea name="group_description" id="group_description" rows="8" cols="60"><?php echo ! empty( $this->description ) ? esc_textarea( $this->description ) : ''; ?></textarea>
 								</div>
 							</div>
 

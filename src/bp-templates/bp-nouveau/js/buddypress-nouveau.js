@@ -398,6 +398,8 @@ window.bp = window.bp || {};
 				$( selector ).append( content ).find( 'li.activity-item' ).each( this.hideSingleUrl );
 			} else if ( 'prepend' === method ) {
 				$( selector ).prepend( content ).find( 'li.activity-item' ).each( this.hideSingleUrl );
+			} else if ( 'after' === method ) {
+				$( selector ).after( content ).find( 'li.activity-item' ).each( this.hideSingleUrl );
 			} else {
 				$( selector ).html( content ).find( 'li.activity-item' ).each( this.hideSingleUrl );
 			}
@@ -542,6 +544,7 @@ window.bp = window.bp || {};
 					data.object === 'group_members' && $( 'body' ).hasClass( 'group-members' ),
 					data.object === 'activity' && $( 'body.groups' ).hasClass( 'activity' ),
 					data.object === 'document' && $( 'body' ).hasClass( 'documents' ),
+					data.object === 'manage_group_members' && $( 'body' ).hasClass( 'manage-members' ),
 					data.object === 'document' && ( $( 'body' ).hasClass( 'document' ) || $( 'body' ).hasClass( 'documents' ) ),
 				];
 
@@ -549,6 +552,7 @@ window.bp = window.bp || {};
 					$( '.groups .group-search.members-search' ),
 					$( '.groups .group-search.activity-search' ),
 					$( '.documents .bp-document-listing .bb-title' ),
+					$( '.groups .group-search.search-wrapper' ),
 					$( '#bp-media-single-folder .bb-title' ),
 				];
 
@@ -564,7 +568,7 @@ window.bp = window.bp || {};
 			// $( this.objectNavParent + ' [data-bp-scope="' + data.scope + '"], #object-nav li.current' ).find( 'span' ).show();
 			$( '#buddypress [data-bp-filter="' + data.object + '"] option[value="' + data.filter + '"]' ).prop( 'selected', true );
 
-			if ( 'friends' === data.object || 'group_members' === data.object ) {
+			if ( 'friends' === data.object || 'group_members' === data.object || 'manage_group_members' === data.object ) {
 				data.template = data.object;
 				data.object   = 'members';
 			} else if ( 'group_requests' === data.object ) {
@@ -589,6 +593,11 @@ window.bp = window.bp || {};
 				function ( response ) {
 					if ( false === response.success || _.isUndefined( response.data ) ) {
 						return;
+					}
+
+					if ( !_.isUndefined( response.data.layout ) ) {
+						$( '.layout-view' ).removeClass( 'active' );
+						$( '.layout-' + response.data.layout + '-view' ).addClass( 'active' );
 					}
 
 					if ( $( 'body.group-members.members.buddypress' ).length && ! _.isUndefined( response.data ) && ! _.isUndefined( response.data.count ) ) {
@@ -616,7 +625,6 @@ window.bp = window.bp || {};
 
 					if ( 'reset' !== data.method ) {
 						self.inject( data.target, response.data.contents, data.method );
-
 						$( data.target ).trigger( 'bp_ajax_' + data.method, $.extend( data, { response: response.data } ) );
 					} else {
 						/* animate to top if called from bottom pagination */
@@ -681,6 +689,7 @@ window.bp = window.bp || {};
 						function () { // Waiting to load dummy image.
 							self.reportPopUp();
 							self.reportedPopup();
+							$( '.activity-item.bb-closed-comments' ).find( '.edit-activity, .acomment-edit' ).parents( '.generic-button' ).hide();
 						},
 						1000
 					);
@@ -823,6 +832,7 @@ window.bp = window.bp || {};
 
 			// Searching.
 			$( '#buddypress [data-bp-search]' ).on( 'submit', 'form', this, this.searchQuery );
+			$( '#buddypress [data-bp-search]' ).on( 'keyup', 'input[name=group_members_search]', this, _.throttle( this.searchQuery, 900 ) );
 			$( '#buddypress [data-bp-search] form' ).on( 'search', 'input[type=search]', this.resetSearch );
 
 			// Buttons.
@@ -1285,11 +1295,7 @@ window.bp = window.bp || {};
 		 * @return {[type]} [description]
 		 */
 		switchGridList: function () {
-			var _this = this, group_members = false, object = $( '.grid-filters' ).data( 'object' );
-
-			if ( 'group_members' === object ) {
-				group_members = true;
-			}
+			var object = $( '.grid-filters' ).data( 'object' );
 
 			if ( 'friends' === object ) {
 				object = 'members';
@@ -1299,46 +1305,55 @@ window.bp = window.bp || {};
 				object = 'members';
 			}
 
-			var objectData = _this.getStorage( 'bp-' + object );
-
-			var extras = {};
-			if ( undefined !== objectData.extras ) {
-				extras = objectData.extras;
-
-				if ( undefined !== extras.layout ) {
-					$( '.grid-filters .layout-view' ).removeClass( 'active' );
-					if ( extras.layout === 'list' ) {
-						$( '.grid-filters .layout-list-view' ).addClass( 'active' );
-					} else {
-						$( '.grid-filters .layout-grid-view' ).addClass( 'active' );
-					}
-				}
-			}
-
 			$( document ).on(
 				'click',
-				'.grid-filters .layout-view',
+				'.grid-filters .layout-view:not(.active)',
 				function ( e ) {
 					e.preventDefault();
+
+					if ( ! object || 'undefined' === typeof object ) {
+						return;
+					}
+
+					if ( bp.Nouveau.ajax_request != false ) {
+						bp.Nouveau.ajax_request.abort();
+
+						$( '.component-navigation [data-bp-object]' ).each(
+							function () {
+								$( this ).removeClass( 'loading' );
+							}
+						);
+					}
+
+					var layout = '';
 
 					if ( $( this ).hasClass( 'layout-list-view' ) ) {
 						$( '.layout-grid-view' ).removeClass( 'active' );
 						$( this ).addClass( 'active' );
 						$( '.bp-list' ).removeClass( 'grid' );
-						extras.layout = 'list';
+						layout = 'list';
 					} else {
 						$( '.layout-list-view' ).removeClass( 'active' );
 						$( this ).addClass( 'active' );
 						$( '.bp-list' ).addClass( 'grid' );
-						extras.layout = 'grid';
+						layout = 'grid';
 					}
 
-					// Added this condition to fix the list and grid view on Groups members page pagination.
-					if ( group_members ) {
-						_this.setStorage( 'bp-group_members', 'extras', extras );
-					} else {
-						_this.setStorage( 'bp-' + object, 'extras', extras );
-					}
+					bp.Nouveau.ajax_request = $.ajax(
+						{
+							method: 'POST',
+							url: BP_Nouveau.ajaxurl,
+							data: {
+								action: 'buddyboss_directory_save_layout',
+								object: object,
+								option: 'bb_layout_view',
+								nonce: BP_Nouveau.nonces[ object ],
+								type: layout
+							},
+							success: function () {
+							}
+						}
+					);
 				}
 			);
 		},
@@ -1954,7 +1969,15 @@ window.bp = window.bp || {};
 			var leave_group_anchor__link = $( target ).data( 'bb-group-link' );
 			if ( 'leave_group' === action && 'true' !== $( target ).attr( 'data-popup-shown' ) ) {
 				if ( leave_group_popup.length ) {
-					leave_group_popup.find( '.bb-leave-group-content .bb-group-name' ).html( '<a href="' + leave_group_anchor__link + '">' + leave_group__name + '</a>' );
+
+					var leave_group_content = leave_group_popup.find( '.bb-leave-group-content' );
+					var is_parent_group = item.hasClass( 'has-child' ) ? true : false;
+
+					leave_group_content.html( is_parent_group ? BP_Nouveau.parent_group_leave_confirm : BP_Nouveau.group_leave_confirm );
+					if ( ! is_parent_group) {
+						leave_group_content.find( '.bb-group-name' ).html( '<a href="' + leave_group_anchor__link + '">' + leave_group__name + '</a>' );
+					}
+
 					$( 'body' ).find( '[data-current-anchor="true"]' ).removeClass( 'bp-toggle-action-button bp-toggle-action-button-hover' ).addClass( 'bp-toggle-action-button-clicked' ); // Add clicked class manually to run function.
 					leave_group_popup.show();
 					$( target ).attr( 'data-current-anchor', 'true' );
@@ -2109,6 +2132,11 @@ window.bp = window.bp || {};
 								} else {
 									return window.location.reload();
 								}
+							}
+
+							// If group is parent and page is group directory, then load active tab.
+							if ( undefined !== response.data.is_group && response.data.is_parent ) {
+								$( '#buddypress .groups-nav li.selected a' ).trigger( 'click' );
 							}
 
 							if (
@@ -3033,6 +3061,10 @@ window.bp = window.bp || {};
 				! $targetEl.closest( '.post-emoji' ).length &&
 				! $targetEl.is( '.emojioneemoji,.emojibtn' ) ) {
 				$( '.post-emoji.active, .emojionearea-button.active' ).removeClass( 'active' );
+				if ( $( '.emojionearea-theatre.show' ).length > 0 ) {
+					$( '.emojionearea-theatre' ).removeClass( 'show' ).addClass( 'hide' );
+					$( '.emojionearea-theatre' ).find( '.emojionearea-picker' ).addClass( 'hidden' );
+				}
 			}
 		},
 
@@ -3046,6 +3078,10 @@ window.bp = window.bp || {};
 				if ( ! _.isUndefined( BP_Nouveau.media ) &&
 					! _.isUndefined( BP_Nouveau.media.emoji ) ) {
 					$( '.post-emoji.active, .emojionearea-button.active' ).removeClass( 'active' );
+					if ( $( '.emojionearea-theatre.show' ).length > 0 ) {
+						$( '.emojionearea-theatre' ).removeClass( 'show' ).addClass( 'hide' );
+						$( '.emojionearea-theatre' ).find( '.emojionearea-picker' ).addClass( 'hidden' );
+					}
 				}
 			}
 		},
@@ -3481,6 +3517,8 @@ window.bp = window.bp || {};
 			if ( $form.filter( '.bp-messages-search-form, .bp-dir-search-form' ).length > 0 ) {
 				$form.find( 'input[type="search"]').val('');
 				$form.find( '.search-form_submit' ).trigger( 'click' );
+			} else if ( $form.find( '#bb_search_group_members' ).length > 0 ) {
+				$form.find( '#bb_search_group_members' ).val('').trigger('keyup');
 			} else {
 				$form.find( '#bbp_search' ).val('');
 			}
@@ -3974,6 +4012,7 @@ window.bp = window.bp || {};
 				//Remove mentioned members Link
 				var tempNode = jQuery( '<div></div>' ).html( urlText );
 				tempNode.find( 'a.bp-suggestions-mention' ).remove();
+				tempNode.find( '[rel="nofollow"]' ).remove() ;
 				urlText = tempNode.html();
 
 				if ( urlText.indexOf( '<img' ) >= 0 ) {
@@ -4199,9 +4238,75 @@ window.bp = window.bp || {};
 					self.render( self.options );
 				}
 			}
+		},
+
+		/**
+		 *  Refresh current activities, used after updating pinned post.
+		 */
+		refreshActivities: function() {
+
+			var self   = this, object = 'activity', scope = 'all',
+			filter = null, objectData = {}, extras = null, search_terms = '';
+
+			objectData = self.getStorage( 'bp-' + object );
+
+			if ( undefined !== objectData.scope ) {
+				scope = objectData.scope;
+			}
+
+			if ( undefined !== objectData.extras ) {
+				extras = objectData.extras;
+			}
+
+			if ( $( '#buddypress [data-bp-filter="' + object + '"]' ).length ) {
+				if ( undefined !== objectData.filter ) {
+					filter = objectData.filter;
+					$( '#buddypress [data-bp-filter="' + object + '"] option[value="' + filter + '"]' ).prop( 'selected', true );
+				} else if ( '-1' !== $( '#buddypress [data-bp-filter="' + object + '"]' ).val() && '0' !== $( '#buddypress [data-bp-filter="' + object + '"]' ).val() ) {
+					filter = $( '#buddypress [data-bp-filter="' + object + '"]' ).val();
+				}
+			}
+
+			if ( $( this.objectNavParent + ' [data-bp-object="' + object + '"]' ).length ) {
+				$( this.objectNavParent + ' [data-bp-object="' + object + '"]' ).each(
+					function () {
+						$( this ).removeClass( 'selected' );
+					}
+				);
+
+				$( this.objectNavParent + ' [data-bp-scope="' + object + '"], #object-nav li.current' ).addClass( 'selected' );
+			}
+
+			search_terms = $( '#buddypress [data-bp-search="' + object + '"] input[type=search]' ).val();
+
+			// Check the querystring to eventually include the search terms.
+			if ( null !== self.querystring ) {
+				if ( undefined !== self.querystring[ object + '_search' ] ) {
+					search_terms = decodeURI( self.querystring[ object + '_search' ] );
+				} else if ( undefined !== self.querystring.s ) {
+					search_terms = decodeURI( self.querystring.s );
+				}
+
+				if ( search_terms ) {
+					$( '#buddypress [data-bp-search="' + object + '"] input[type=search]' ).val( search_terms );
+				}
+			}
+
+			if ( $( '#buddypress [data-bp-list="' + object + '"]' ).length ) {
+				var queryData = {
+					object: object,
+					scope: scope,
+					filter: filter,
+					search_terms: search_terms,
+					extras: extras
+				};
+
+				// Populate the object list.
+				bp.Nouveau.objectRequest( queryData );
+			}
+
+			bp.Nouveau.Activity.activityPinHasUpdates = false;
 		}
-
-
 	};
 
    // Launch BP Nouveau.

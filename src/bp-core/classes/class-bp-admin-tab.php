@@ -98,6 +98,18 @@ if ( ! class_exists( 'BP_Admin_Tab' ) ) :
 		}
 
 		public function register_admin_script() {
+
+			$screen    = get_current_screen();
+			$screen_id = $screen ? $screen->id : '';
+
+			if (
+				'buddyboss_page_bp-settings' === $screen_id ||
+				'bp-member-type' === $screen_id
+			) {
+				wp_enqueue_script( 'bp-select2' );
+				wp_enqueue_style( 'bp-select2' );
+			}
+
 			wp_enqueue_script(
 				'bp-admin',
 				buddypress()->plugin_url . 'bp-core/admin/js/settings-page.js',
@@ -106,8 +118,6 @@ if ( ! class_exists( 'BP_Admin_Tab' ) ) :
 				true
 			);
 
-			$screen         = get_current_screen();
-			$screen_id      = $screen ? $screen->id : '';
 			$email_template = '';
 
 			if ( 'edit-bp-email' === $screen_id ) {
@@ -315,6 +325,9 @@ if ( ! class_exists( 'BP_Admin_Tab' ) ) :
 						'duplicate' => esc_html__( 'The rule content cannot be duplicate.', 'buddyboss' ),
 					),
 				),
+				'group'                        => array(
+					'restrict_invites_confirm_message' => esc_html__( 'By enabling this option members that are already part of sub-groups and not the parent groups will automatically be removed from all sub-groups.', 'buddyboss' ),
+				)
 			);
 
 			// Localize only post_type is member type and group type.
@@ -493,6 +506,16 @@ if ( ! class_exists( 'BP_Admin_Tab' ) ) :
 		public function form_html() {
 			settings_fields( $this->tab_name );
 			$this->bp_custom_do_settings_sections( $this->tab_name );
+
+			/**
+			 * Added hook to add the custom data into the form.
+			 *
+			 * @since BuddyBoss 2.5.20
+			 *
+			 * @param string $tab_name The tab name.
+			 * @param object $this     Current tab object.
+			 */
+			do_action( 'bp_admin_tab_form_html', $this->tab_name, $this );
 
 			if ( isset( $_GET ) && isset( $_GET['tab'] ) && 'bp-document' === $_GET['tab'] && 'bp-settings' === $_GET['page'] ) {
 				?>

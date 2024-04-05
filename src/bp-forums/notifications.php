@@ -425,6 +425,7 @@ function bbp_buddypress_add_notification( $reply_id = 0, $topic_id = 0, $forum_i
 				// from being encoded with HTML entities, wrapped in paragraph tags, etc...
 				remove_all_filters( 'bbp_get_reply_content' );
 				remove_all_filters( 'bbp_get_topic_title' );
+				add_filter( 'bbp_get_reply_content', 'bb_mention_add_user_dynamic_link' );
 
 				// Strip tags from text and setup mail data.
 				$reply_content = bbp_kses_data( bbp_get_reply_content( $reply_id ) );
@@ -582,6 +583,7 @@ function bbp_buddypress_add_topic_notification( $topic_id, $forum_id ) {
 				// from being encoded with HTML entities, wrapped in paragraph tags, etc...
 				remove_all_filters( 'bbp_get_topic_content' );
 				remove_all_filters( 'bbp_get_topic_title' );
+				add_filter( 'bbp_get_topic_content', 'bb_mention_add_user_dynamic_link' );
 
 				// Strip tags from text and setup mail data.
 				$topic_content = bbp_kses_data( bbp_get_topic_content( $topic_id ) );
@@ -874,7 +876,7 @@ function bb_delete_forum_topic_reply_notification( $post_data ) {
 		return;
 	}
 
-	if ( 'trash' === $post_data->post_status ) {
+	if ( isset( $post_data->post_status ) && 'trash' === $post_data->post_status ) {
 		if ( bbp_get_reply_post_type() === $post_data->post_type ) {
 			bp_notifications_delete_all_notifications_by_type( $post_data->ID, 'forums', 'bb_forums_subscribed_reply' );
 		}

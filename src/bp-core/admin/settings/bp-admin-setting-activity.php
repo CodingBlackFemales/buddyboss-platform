@@ -28,50 +28,38 @@ class BP_Admin_Setting_Activity extends BP_Admin_Setting_tab {
 	}
 
 	public function settings_save() {
+
+		// Get old values for cpt and check if it disabled then keep it and later will save it.
+		$cpt_types          = apply_filters( 'bb_activity_global_setting_comment_cpt', array( 'sfwd-courses', 'sfwd-lessons', 'sfwd-topic', 'sfwd-quiz', 'sfwd-assignment', 'groups', 'lesson' ) );
+		$filtered_cpt_types = array_values(
+			array_filter(
+				array_map(
+					function ( $post_type ) {
+						if ( ! bb_activity_is_enabled_cpt_global_comment( $post_type ) ) {
+							return $post_type;
+						}
+					},
+					$cpt_types
+				)
+			)
+		);
+
+		$old_cpt_comments_values = array();
+		foreach ( $filtered_cpt_types as $cpt ) {
+			$option_name                             = bb_post_type_feed_comment_option_name( $cpt );
+			$old_cpt_comments_values[ $option_name ] = bp_get_option( $option_name, false );
+		}
+
 		parent::settings_save();
 
-		$bp                = buddypress();
-		$active_components = $bp->active_components;
+		bb_cpt_feed_enabled_disabled();
 
-		// Flag for activate the blogs component only if any CPT OR blog posts have enabled the activity feed.
-		$is_blog_component_active = false;
-
-		// Get all active custom post type.
-		$post_types = get_post_types( array( 'public' => true ) );
-
-		foreach ( $post_types as $cpt ) {
-			// Exclude all the custom post type which is already in BuddyPress Activity support.
-			if ( in_array(
-				$cpt,
-				array( 'forum', 'topic', 'reply', 'page', 'attachment', 'bp-group-type', 'bp-member-type' )
-			) ) {
-				continue;
-			}
-
-			$enable_blog_feeds = isset( $_POST[ "bp-feed-custom-post-type-$cpt" ] );
-
-			if ( $enable_blog_feeds ) {
-				$is_blog_component_active = true;
+		// Do not override the setting which previously saved.
+		if ( ! empty( $old_cpt_comments_values ) ) {
+			foreach ( $old_cpt_comments_values as $cpt_comment_key => $cpt_comment_val ) {
+				bp_update_option( $cpt_comment_key, $cpt_comment_val );
 			}
 		}
-
-		// Add blogs component to $active_components list.
-		if ( $is_blog_component_active ) {
-			$active_components['blogs'] = '1';
-		} else {
-			unset( $active_components['blogs'] );
-		}
-
-		// Save settings and upgrade schema.
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		require_once $bp->plugin_dir . '/bp-core/admin/bp-core-admin-schema.php';
-
-		$bp->active_components = $active_components;
-		bp_core_install( $bp->active_components );
-
-		// Mapping the component pages in page settings except registration pages.
-		bp_core_add_page_mappings( $bp->active_components, 'keep', false );
-		bp_update_option( 'bp-active-components', $bp->active_components );
 
 	}
 
@@ -84,37 +72,54 @@ class BP_Admin_Setting_Activity extends BP_Admin_Setting_tab {
 			'class' => 'hidden',
 		) );
 
-		// Allow Activity comment edit setting.
-		$this->add_field( '_bb_enable_activity_comment_edit', __( 'Edit Comment', 'buddyboss' ), 'bb_admin_setting_callback_enable_activity_comment_edit', 'intval' );
-		$this->add_field( '_bb_activity_comment_edit_time', __( 'Edit Comment Time Limit', 'buddyboss' ), '__return_true', 'intval', array(
-			'class' => 'hidden',
-		) );
-
 		// Allow subscriptions setting.
 		$this->add_field( '_bp_enable_heartbeat_refresh', __( 'Activity auto-refresh', 'buddyboss' ), 'bp_admin_setting_callback_heartbeat', 'intval' );
 
-		// Allow auto-load.
-		$this->add_field( '_bp_enable_activity_autoload', __( 'Activity auto-load', 'buddyboss' ), 'bp_admin_setting_callback_enable_activity_autoload', 'intval' );
+		// Close comments.
+		$this->add_field( '_bb_enable_close_activity_comments', __( 'Close comments', 'buddyboss' ), array( $this, 'bb_admin_setting_callback_enable_close_activity_comments' ), 'intval' );
 
 		// Allow scopes/tabs.
 		$this->add_field( '_bp_enable_activity_tabs', __( 'Activity tabs', 'buddyboss' ), 'bp_admin_setting_callback_enable_activity_tabs', 'intval' );
 
+		// Allow scopes/tabs.
+		$this->add_field( '_bb_enable_activity_pinned_posts', __( 'Pinned Post', 'buddyboss' ), 'bb_admin_setting_callback_enable_activity_pinned_posts', 'intval' );
+
 		// Allow follow.
 		$this->add_field( '_bp_enable_activity_follow', __( 'Follow', 'buddyboss' ), 'bp_admin_setting_callback_enable_activity_follow', 'intval' );
-
-		// Allow like.
-		$this->add_field( '_bp_enable_activity_like', __( 'Likes', 'buddyboss' ), 'bp_admin_setting_callback_enable_activity_like', 'intval' );
 
 		// Allow link preview.
 		$this->add_field( '_bp_enable_activity_link_preview', __( 'Link Previews', 'buddyboss' ), 'bp_admin_setting_callback_enable_activity_link_preview', 'intval' );
 
-		//Relevant Activity Feeds
+		// Relevant Activity Feeds
 		$this->add_field( '_bp_enable_relevant_feed', __( 'Relevant Activity', 'buddyboss' ), 'bp_admin_setting_callback_enable_relevant_feed', 'intval' );
 
 		// Allow subscriptions setting.
 		if ( is_plugin_active( 'akismet/akismet.php' ) && defined( 'AKISMET_VERSION' ) ) {
 			// $this->add_field( '_bp_enable_akismet', __( 'Akismet', 'buddyboss' ), 'bp_admin_setting_callback_activity_akismet', 'intval' );
 		}
+
+		$this->add_section( 'bb_activity_comments', __( 'Activity Comments', 'buddyboss' ), '', array( $this, 'bb_admin_activity_comments_settings_tutorial' ), sprintf(
+				wp_kses_post(
+					__( 'WordPress post and custom post types will inherit from your WordPress %s settings.', 'buddyboss' )
+				),
+				'<a href="options-discussion.php" target="_blank" >' . esc_html__( 'Discussion', 'buddyboss' ) . '</a>'
+			)
+		);
+
+		$this->add_field( '_bb_enable_activity_comments', __( 'Enable comments', 'buddyboss' ), array( $this, 'bb_admin_setting_callback_enable_activity_comments' ), 'intval' );
+
+		// Allow Activity comment threading setting.
+		$this->add_field( '_bb_enable_activity_comment_threading', __( 'Comment threading', 'buddyboss' ), array( $this, 'bb_admin_setting_callback_comment_threading' ), 'intval' );
+		$this->add_field( '_bb_activity_comment_threading_depth', __( 'Comment threading depth', 'buddyboss' ), '__return_true', 'intval', array( 'class' => 'hidden' ) );
+
+		$this->add_field( '_bb_activity_comment_visibility', __( 'Comment visibility', 'buddyboss' ), array( $this, 'bb_admin_setting_callback_comment_visibility' ), 'intval' );
+		$this->add_field( '_bb_activity_comment_loading', __( 'Comments loading', 'buddyboss' ), array( $this, 'bb_admin_setting_callback_comment_loading' ), 'intval' );
+
+		// Allow Activity comment edit setting.
+		$this->add_field( '_bb_enable_activity_comment_edit', __( 'Edit Activity comments', 'buddyboss' ), 'bb_admin_setting_callback_enable_activity_comment_edit', 'intval' );
+		$this->add_field( '_bb_activity_comment_edit_time', __( 'Edit Comment Time Limit', 'buddyboss' ), '__return_true', 'intval', array(
+			'class' => 'hidden',
+		) );
 
 		$this->add_section( 'bp_custom_post_type', __( 'Posts in Activity Feeds', 'buddyboss' ) );
 
@@ -187,6 +192,172 @@ class BP_Admin_Setting_Activity extends BP_Admin_Setting_tab {
 		 * @param Object $this BP_Admin_Setting_Activity.
 		 */
 		do_action( 'bp_admin_setting_activity_register_fields', $this );
+	}
+
+	/**
+	 * Enable close activity comments settings.
+	 *
+	 * @since BuddyBoss 2.5.80
+	 */
+	public function bb_admin_setting_callback_enable_close_activity_comments() {
+		?>
+
+		<input id="_bb_enable_close_activity_comments" name="_bb_enable_close_activity_comments" type="checkbox" value="1" <?php checked( bb_is_close_activity_comments_enabled( true ) ); ?> />
+		<label for="_bb_enable_close_activity_comments"><?php esc_html_e( 'Allow your users to stop users commenting on their posts', 'buddyboss' ); ?></label>
+
+		<?php
+	}
+
+	/**
+	 * Enable activity comments.
+	 *
+	 * @since BuddyBoss 2.5.80
+	 */
+	public function bb_admin_setting_callback_enable_activity_comments() {
+		?>
+		<input id="_bb_enable_activity_comments" name="_bb_enable_activity_comments" type="checkbox" value="1" <?php checked( bb_is_activity_comments_enabled() ); ?> />
+		<label for="_bb_enable_activity_comments"><?php esc_html_e( 'Allow members to comment on activity posts', 'buddyboss' ); ?></label>
+		<p class="description"><?php esc_html_e( 'Comments on an individual activity post can be closed or disabled all together by site admins.', 'buddyboss' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Enable activity comment threading.
+	 *
+	 * @since BuddyBoss 2.5.80
+	 */
+	public function bb_admin_setting_callback_comment_threading() {
+		$options = array( 1, 2, 3, 4 );
+		$depth   = bb_get_activity_comment_threading_depth();
+		ob_start();
+		?>
+		<select name="_bb_activity_comment_threading_depth">
+			<?php
+			foreach ( $options as $depth_level ) {
+				echo '<option value="' . esc_attr( $depth_level ) . '" ' . selected( $depth, $depth_level, false ) . '>' . esc_html( $depth_level ) . '</option>';
+			}
+			?>
+		</select>
+		<?php
+		$select = ob_get_clean();
+		?>
+
+		<input id="_bb_enable_activity_comment_threading" name="_bb_enable_activity_comment_threading" type="checkbox" value="1" <?php checked( bb_is_activity_comment_threading_enabled() ); ?> />
+		<label for="_bb_enable_activity_comment_threading">
+			<?php printf( esc_html__( 'Organize replies into threads %s levels deep', 'buddyboss' ), $select ); ?>
+		</label>
+		<p class="description"><?php esc_html_e( 'Replies to an activity comment will be shown in separate threads, except when replying to a comment at the deepest level. This only applies to platform not app.', 'buddyboss' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Activity comment visibility.
+	 *
+	 * @since BuddyBoss 2.5.80
+	 */
+	public function bb_admin_setting_callback_comment_visibility() {
+		$options = array(
+			array(
+				'label' => esc_attr__( 'None', 'buddyboss' ),
+				'value' => 0,
+			),
+			array(
+				'label' => 1,
+				'value' => 1,
+			),
+			array(
+				'label' => 2,
+				'value' => 2,
+			),
+			array(
+				'label' => 3,
+				'value' => 3,
+			),
+			array(
+				'label' => 4,
+				'value' => 4,
+			),
+			array(
+				'label' => 5,
+				'value' => 5,
+			),
+		);
+		$setting = bb_get_activity_comment_visibility();
+		ob_start();
+		?>
+		<select id="_bb_activity_comment_visibility" name="_bb_activity_comment_visibility">
+			<?php
+			foreach ( $options as $option ) {
+				$value         = isset( $option['value'] ) ? $option['value'] : 0;
+				$setting_level = isset( $option['label'] ) ? $option['label'] : 0;
+				echo '<option value="' . esc_attr( $value ) . '" ' . selected( $setting, $value, false ) . '>' . esc_html( $setting_level ) . '</option>';
+			}
+			?>
+		</select>
+		<?php
+		$select = ob_get_clean();
+		?>
+
+		<label for="_bb_activity_comment_visibility">
+			<?php printf( esc_html__( 'Display a maximum %s comments per post in activity feeds', 'buddyboss' ), $select ); ?>
+		</label>
+		<p class="description"><?php esc_html_e( 'Load more using the "View more comments" links. Higher comments counts will increase the time it takes members to scroll through activity feeds. This only applies to platform not app.', 'buddyboss' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Activity comment loading.
+	 *
+	 * @since BuddyBoss 2.5.80
+	 */
+	public function bb_admin_setting_callback_comment_loading() {
+		$options = apply_filters( 'bb_activity_comment_loading_options', array( 5, 10, 15, 20, 25, 30 ) );
+		$setting = bb_get_activity_comment_loading();
+		ob_start();
+		?>
+		<select id="_bb_activity_comment_loading" name="_bb_activity_comment_loading">
+			<?php
+			foreach ( $options as $setting_level ) {
+				echo '<option value="' . esc_attr( $setting_level ) . '" ' . selected( $setting, $setting_level, false ) . '>' . esc_html( $setting_level ) . '</option>';
+			}
+			?>
+		</select>
+		<?php
+		$select = ob_get_clean();
+		?>
+
+		<label for="_bb_activity_comment_loading">
+			<?php printf( esc_html__( 'Load %s additional comments on each request', 'buddyboss' ), $select ); ?>
+		</label>
+		<p class="description"><?php esc_html_e( 'Increasing the number of comments retrieved in each request may negatively impact site performance.', 'buddyboss' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Link to Activity Comments tutorial
+	 *
+	 * @since BuddyBoss 2.5.80
+	 */
+	public function bb_admin_activity_comments_settings_tutorial() {
+		?>
+		<p>
+			<a class="button" href="
+			<?php
+			echo esc_url(
+				bp_get_admin_url(
+					add_query_arg(
+						array(
+							'page'    => 'bp-help',
+							'article' => 124801, // @todo: update when release.
+						),
+						'admin.php'
+					)
+				)
+			);
+			?>
+		"><?php esc_html_e( 'View Tutorial', 'buddyboss' ); ?></a>
+		</p>
+		<?php
 	}
 }
 

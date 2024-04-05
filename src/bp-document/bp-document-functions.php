@@ -615,7 +615,7 @@ function bp_document_add_handler( $documents = array(), $privacy = 'public', $co
 							'folder_id'     => ! empty( $document['folder_id'] ) ? $document['folder_id'] : $folder_id,
 							'group_id'      => ! empty( $document['group_id'] ) ? $document['group_id'] : $group_id,
 							'activity_id'   => $bp_document->activity_id,
-							'message_id'    => $bp_document->message_id,
+							'message_id'    => ! empty( $bp_document->message_id ) ? $bp_document->message_id : ( ! empty( $document['message_id'] ) ? $document['message_id'] : 0 ),
 							'privacy'       => $bp_document->privacy,
 							'menu_order'    => ! empty( $document['menu_order'] ) ? $document['menu_order'] : false,
 							'date_modified' => bp_core_current_time(),
@@ -643,6 +643,7 @@ function bp_document_add_handler( $documents = array(), $privacy = 'public', $co
 						'folder_id'     => ! empty( $document['folder_id'] ) ? $document['folder_id'] : $folder_id,
 						'group_id'      => ! empty( $document['group_id'] ) ? $document['group_id'] : $group_id,
 						'privacy'       => ! empty( $document['privacy'] ) && in_array( $document['privacy'], array_merge( array_keys( bp_document_get_visibility_levels() ), array( 'message' ) ) ) ? $document['privacy'] : $privacy,
+						'message_id'    => ! empty( $document['message_id'] ) ? $document['message_id'] : 0,
 						'menu_order'    => ! empty( $document['menu_order'] ) ? $document['menu_order'] : 0,
 					)
 				);
@@ -1223,9 +1224,6 @@ function folders_check_folder_access( $folder_id ) {
  */
 function bp_document_delete_orphaned_attachments() {
 
-	remove_filter( 'posts_join', 'bp_media_filter_attachments_query_posts_join', 10 );
-	remove_filter( 'posts_where', 'bp_media_filter_attachments_query_posts_where', 10 );
-
 	/**
 	 * Removed the WP_Query because it's conflicting with other plugins which hare using non-standard way using the
 	 * pre_get_posts & ajax_query_attachments_args hook & filter and it's getting all the media ids and it will remove
@@ -1233,43 +1231,38 @@ function bp_document_delete_orphaned_attachments() {
 	 *
 	 * @since BuddyBoss 1.7.6
 	 */
-	$args = array(
-		'posts_per_page' => -1,
-		'fields'         => 'ids',
-		'post_status'    => 'inherit',
-		'post_type'      => 'attachment',
-		'meta_query'     => array(
-			'relation' => 'AND',
-			array(
-				'key'   => 'bp_document_saved',
-				'value' => '0',
-			),
-			array(
-				'key'     => 'bb_media_draft',
-				'compare' => 'NOT EXISTS',
-				'value'   => '',
-			),
-		),
-		'date_query'     => array(
-			array(
-				'column' => 'post_date_gmt',
-				'before' => '6 hours ago',
-			),
-		),
-	);
+	global $wpdb;
+	$post_table              = $wpdb->posts;
+	$postmeta_table          = $wpdb->postmeta;
+	$six_hours_ago_timestamp = strtotime( '-6 hours', current_time( 'timestamp', 1 ) );
+	$six_hours_ago           = date( 'Y-m-d H:i:s', $six_hours_ago_timestamp );
 
-	$document_wp_query = new WP_query( $args );
-	if ( 0 < $document_wp_query->found_posts ) {
-		foreach ( $document_wp_query->posts as $post_id ) {
+	$query = "SELECT {$post_table}.ID
+				FROM {$post_table}
+				LEFT JOIN {$postmeta_table} ON ( {$post_table}.ID = {$postmeta_table}.post_id )
+				LEFT JOIN {$postmeta_table} AS mt1
+					ON ( {$post_table}.ID = mt1.post_id AND mt1.meta_key = 'bb_media_draft' )
+					WHERE 1=1 AND
+						( {$post_table}.post_date_gmt < '{$six_hours_ago}' ) AND
+						(
+							(
+								{$postmeta_table}.meta_key = 'bp_document_saved' AND
+								{$postmeta_table}.meta_value = '0'
+							) AND
+							mt1.post_id IS NULL
+						) AND
+						{$post_table}.post_type = 'attachment' AND
+						( {$post_table}.post_status = 'inherit' )
+				GROUP BY {$post_table}.ID
+				ORDER BY {$post_table}.post_date DESC";
+
+	$document_wp_query_posts = $wpdb->get_col( $query );
+
+	if ( ! empty( $document_wp_query_posts ) ) {
+		foreach ( $document_wp_query_posts as $post_id ) {
 			wp_delete_attachment( $post_id, true );
 		}
 	}
-
-	wp_reset_postdata();
-	wp_reset_query();
-
-	add_filter( 'posts_join', 'bp_media_filter_attachments_query_posts_join', 10, 2 );
-	add_filter( 'posts_where', 'bp_media_filter_attachments_query_posts_where', 10, 2 );
 
 	bb_document_remove_orphaned_download();
 }
@@ -2118,7 +2111,13 @@ function bp_document_user_document_folder_tree_view_li_html( $user_id = 0, $grou
 		$documents_folder_query = $wpdb->prepare( "SELECT * FROM {$document_folder_table} WHERE user_id = %d AND group_id = %d ORDER BY id DESC", $user_id, $group_id );
 	}
 
-	$data = $wpdb->get_results( $documents_folder_query, ARRAY_A ); // db call ok; no-cache ok;
+	$cached = bp_core_get_incremented_cache( $documents_folder_query, 'bp_document_folder' );
+	if ( false === $cached ) {
+		$data = $wpdb->get_results( $documents_folder_query, ARRAY_A ); // db call ok; no-cache ok;
+		bp_core_set_incremented_cache( $documents_folder_query, 'bp_document_folder', $data );
+	} else {
+		$data = $cached;
+	}
 
 	// Build array of item references:
 	foreach ( $data as $key => &$item ) {
@@ -2363,7 +2362,7 @@ function bp_document_move_document_to_folder( $document_id = 0, $folder_id = 0, 
 						// Need to delete child activity.
 						$need_delete = $document->activity_id;
 
-						$document_album = (int) $document->album_id;
+						$document_folder = (int) $document->folder_id;
 
 						// Update document activity id to parent activity id.
 						$document->activity_id  = $parent_activity_id;
@@ -2379,8 +2378,8 @@ function bp_document_move_document_to_folder( $document_id = 0, $folder_id = 0, 
 						update_post_meta( $document->attachment_id, 'bp_document_saved', 1 );
 
 						bp_activity_delete_meta( $parent_activity_id, 'bp_document_folder_activity' );
-						if ( $document_album > 0 ) {
-							bp_activity_update_meta( $parent_activity_id, 'bp_document_folder_activity', $document_album );
+						if ( $document_folder > 0 ) {
+							bp_activity_update_meta( $parent_activity_id, 'bp_document_folder_activity', $document_folder );
 						}
 
 						// Update the activity meta first otherwise it will delete the document.
@@ -2640,6 +2639,9 @@ function bp_document_rename_file( $document_id = 0, $attachment_document_id = 0,
 		}
 	}
 
+	// Delete symlink before renaming the main file.
+	bp_document_delete_symlinks( $document_id );
+
 	if ( ! @rename( $file_abs_path, $new_file_abs_path ) ) {
 		return __( 'File renaming error!', 'buddyboss' );
 	}
@@ -2649,6 +2651,19 @@ function bp_document_rename_file( $document_id = 0, $attachment_document_id = 0,
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 		require_once ABSPATH . 'wp-admin/includes/media.php';
 	}
+
+	// Delete thumbnails after renaming.
+	$old_meta = wp_get_attachment_metadata( $attachment_document_id );
+	if ( ! empty( $old_meta['sizes'] ) ) {
+		// Add upload filters.
+		bb_document_add_upload_filters();
+
+		wp_delete_attachment_files( $attachment_document_id, $old_meta, array(), $file_abs_path );
+
+		// Remove upload filters.
+		bb_document_remove_upload_filters();
+	}
+
 	update_post_meta( $attachment_document_id, '_wp_attached_file', $new_file_rel_path );
 	wp_update_attachment_metadata( $attachment_document_id, wp_generate_attachment_metadata( $attachment_document_id, $new_file_abs_path ) );
 
@@ -3995,7 +4010,7 @@ function bp_document_delete_symlinks( $document ) {
 				}
 
 				// If rename the file then preview doesn't exist but symbolic is available in the folder. So, checked the file is not empty then remove it from symbolic.
-				if ( ! empty( $attachment_path ) ) {
+				if ( file_exists( $attachment_path ) ) {
 					@unlink( $attachment_path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 				}
 			}
@@ -4562,10 +4577,12 @@ function bp_document_load_gopp_image_editor_gs() {
 /**
  * Create symlink for a document video.
  *
- * @param object $document BP_Document Object.
- * @param bool   $generate Generate Symlink or not.
- *
  * @since BuddyBoss 1.7.0
+ *
+ * @param bool       $generate Generate Symlink or not.
+ * @param object|int $document BP_Document Object.
+ *
+ * @return string|void
  */
 function bb_document_video_get_symlink( $document, $generate = true ) {
 
@@ -5062,4 +5079,97 @@ function bb_document_migration() {
 	 * @since BuddyBoss 2.4.50
 	 */
 	$wpdb->query( "UPDATE {$bp->document->table_name} AS d JOIN {$wpdb->posts} AS p ON p.ID = d.attachment_id SET d.description = p.post_content" ); // phpcs:ignore
+}
+
+/**
+ * Get activity document.
+ *
+ * @BuddyBoss 2.5.50
+ *
+ * @param object|null $activity Activity object.
+ *
+ * @return string|bool
+ */
+function bb_document_get_activity_document( $activity = '', $args = array() ) {
+	if ( empty( $activity ) ) {
+		global $activities_template;
+		$activity = $activities_template->activity ?? '';
+	}
+
+	if ( empty( $activity ) ) {
+		return false;
+	}
+
+	// Get activity metas.
+	$activity_metas = bb_activity_get_metadata( $activity->id );
+	$document_ids   = ! empty( $activity_metas['bp_document_ids'][0] ) ? $activity_metas['bp_document_ids'][0] : '';
+
+	if ( empty( $document_ids ) ) {
+		return false;
+	}
+
+	// Documents based on group setting for forum.
+	if (
+		(
+			buddypress()->activity->id === $activity->component &&
+			! bp_is_profile_document_support_enabled()
+		) ||
+		(
+			bp_is_active( 'groups' ) &&
+			buddypress()->groups->id === $activity->component && ! bp_is_group_document_support_enabled()
+		)
+	) {
+		return false;
+	}
+
+	/**
+	 * If the content has been changed by these filters bb_moderation_has_blocked_message,
+	 * bb_moderation_is_blocked_message, bb_moderation_is_suspended_message then
+	 * it will hide document content which is created by blocked/blocked/suspended member.
+	 */
+	$hide_forum_activity = function_exists( 'bb_moderation_to_hide_forum_activity' ) && bb_moderation_to_hide_forum_activity( $activity->id );
+
+	if ( true === $hide_forum_activity ) {
+		return false;
+	}
+
+	$document_args = array(
+		'include'  => $document_ids,
+		'order_by' => 'menu_order',
+		'sort'     => 'ASC',
+		'per_page' => 0,
+	);
+
+	// Update privacy for the group and comments.
+	if ( bp_is_active( 'groups' ) && bp_is_group() && bp_is_group_document_support_enabled() ) {
+		$document_args['privacy'] = array( 'grouponly' );
+		if ( 'activity_comment' === $activity->type ) {
+			$document_args['privacy'][] = 'comment';
+		}
+	}
+
+	$document_args = bp_parse_args(
+		$args,
+		$document_args,
+		'activity_document'
+	);
+
+	$content = '';
+	if ( bp_has_document( $document_args ) ) {
+		ob_start();
+		?>
+		<div class="bb-activity-media-wrap bb-media-length-1 ">
+			<?php
+			bp_get_template_part( 'document/activity-document-move' );
+			while ( bp_document() ) {
+				bp_the_document();
+				bp_get_template_part( 'document/activity-entry' );
+			}
+			?>
+		</div>
+		<?php
+		$content = ob_get_clean();
+	}
+
+	return $content;
 }

@@ -744,7 +744,7 @@ class BP_Email_Tokens {
 
 
 												} else {
-													$object_id = ! empty( $tokens['reply_id'] ) ? $tokens['reply_id'] : $tokens['topic_id'];
+													$object_id = ! empty( $tokens['reply_id'] ) ? $tokens['reply_id'] : ( ! empty( $tokens['topic_id'] ) ? $tokens['topic_id'] : '' );
 													// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 													echo wpautop( $content );
 												}
@@ -1230,13 +1230,17 @@ class BP_Email_Tokens {
 																	<table cellpadding="0" cellspacing="0" border="0" width="47%" style="width: 47%;" align="left" class="no-responsive-table">
 																		<tr>
 																			<td height="34px" style="vertical-align: middle;">
-																				<?php
+																			<?php
+																			if ( bp_is_active( 'friends' ) ) {
 																				$friend_count    = function_exists( 'friends_get_total_friend_count' ) ? friends_get_total_friend_count( $member_id ) : 0;
 																				$connection_text = ( $friend_count > 1 ) ? __( 'connections', 'buddyboss' ) : __( 'connection', 'buddyboss' );
 																				?>
 																				<div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size: <?php echo esc_attr( floor( $settings['body_text_size'] * 0.8125 ) . 'px' ); ?>; color: <?php echo esc_attr( $settings['body_text_color'] ); ?>;">
 																					<span style="color: <?php echo esc_attr( $settings['body_secondary_text_color'] ); ?>; opacity: 0.85;"><?php echo $friend_count; ?></span> <?php echo $connection_text; ?>
 																				</div>
+																				<?php
+																			}
+																			?>
 																			</td>
 																		</tr>
 																	</table>
@@ -2605,10 +2609,10 @@ class BP_Email_Tokens {
 			$gif_data            = array();
 			$image_url           = '';
 			$media_args          = array();
-			$media_wrap_style    = 'padding: 15px 0; width: 250px; height: 200px;';
+			$media_wrap_style    = 'padding: 15px 0; width:100%; max-width: 250px; height: 200px;';
 			$video_wrap_style    = 'padding: 15px 0; width: 250px;';
 			$document_wrap_style = 'padding: 15px 0 15px 0;';
-			$media_elem_style    = 'width: 250px; vertical-align: top; height: 200px; overflow: hidden;padding:0;';
+			$media_elem_style    = 'width: 100%: max-width: 250px; vertical-align: top; height: 200px; overflow: hidden;padding:0;';
 
 			$is_mentioned = false;
 			if ( 'mentioned' === $type ) {
@@ -2685,12 +2689,12 @@ class BP_Email_Tokens {
 							?>
 							<div class="bb-activity-media-elem" style="<?php echo esc_attr( $media_elem_style ); ?>">
 								<a href="<?php echo esc_url( $image_url ); ?>">
-									<img style="border-radius: 4px; min-width: 100%; min-height: 100%; max-width: 100%; object-fit: cover;" src="<?php echo esc_url( $media_url ); ?>" alt="<?php echo esc_attr( bp_get_media_title() ); ?>"/>
+									<img style="border-radius: 4px; min-width: 100%; min-height: 100%; max-width: 100%; object-fit: cover; display: block;" src="<?php echo esc_url( $media_url ); ?>" alt="<?php echo esc_attr( bp_get_media_title() ); ?>"/>
 								</a>
 							</div>
 							<?php if ( $total_media_ids > 1 ) : ?>
-								<p style="height: 6px;border-radius: 0px 0px 4px 4px;max-width: 240px;margin: 0;margin-left: 5px;width:100%;background-color: #b5b7bb;padding:0;"></p>
-								<p style="height: 6px;border-radius: 0px 0px 4px 4px;max-width: 222px;margin: 0;margin-left: 14px;width:100%;background-color: #e1e4e8;padding:0;"></p>
+								<p style="height: 6px;border-radius: 0px 0px 4px 4px;max-width: 95%;margin: 0;margin-left: 2.5%;width:100%;background-color: #b5b7bb;padding:0;"></p>
+								<p style="height: 6px;border-radius: 0px 0px 4px 4px;max-width: 90%;margin: 0;margin-left: 5%;width:100%;background-color: #e1e4e8;padding:0;"></p>
 							<?php endif; ?>
 							<?php
 							break;

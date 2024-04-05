@@ -275,6 +275,12 @@ class BP_REST_Settings_Endpoint extends WP_REST_Controller {
 			'bb-web-notification-enabled'              => function_exists( 'bb_web_notification_enabled' ) && bb_web_notification_enabled(),
 			'bb-app-notification-enabled'              => function_exists( 'bb_app_notification_enabled' ) && bb_app_notification_enabled(),
 			'bb_enabled_legacy_email_preference'       => function_exists( 'bb_enabled_legacy_email_preference' ) && bb_enabled_legacy_email_preference(),
+
+			// Reactions settings.
+			'bb_reaction_mode'                         => function_exists( 'bb_get_reaction_mode' ) ? bb_get_reaction_mode() : 'likes',
+			'bb_is_reaction_activity_posts_enabled'    => function_exists( 'bb_is_reaction_activity_posts_enabled' ) && bb_is_reaction_activity_posts_enabled(),
+			'bb_is_reaction_activity_comments_enabled' => function_exists( 'bb_is_reaction_activity_comments_enabled' ) && bb_is_reaction_activity_comments_enabled(),
+			'bb_is_close_activity_comments_enabled'    => function_exists( 'bb_is_close_activity_comments_enabled' ) && bb_is_close_activity_comments_enabled(),
 		);
 
 		if ( bp_is_active( 'moderation' ) ) {
@@ -400,6 +406,13 @@ class BP_REST_Settings_Endpoint extends WP_REST_Controller {
 			$results['bp_enable_activity_link_preview'] = bp_is_activity_link_preview_active();
 			$results['bp_enable_relevant_feed']         = ( function_exists( 'bp_is_relevant_feed_enabled' ) ? bp_is_relevant_feed_enabled() : false );
 
+			// Activity Comment.
+			$results['bb_enable_activity_comments']          = function_exists( 'bb_is_activity_comments_enabled' ) ? bb_is_activity_comments_enabled() : true;
+			$results['bb_enable_activity_comment_threading'] = function_exists( 'bb_is_activity_comment_threading_enabled' ) ? bb_is_activity_comment_threading_enabled() : true;
+			$results['bb_activity_comment_threading_depth']  = function_exists( 'bb_get_activity_comment_threading_depth' ) ? bb_get_activity_comment_threading_depth() : 3;
+			$results['bb_activity_comment_visibility']       = function_exists( 'bb_get_activity_comment_visibility' ) ? bb_get_activity_comment_visibility() : 2;
+			$results['bb_activity_comment_loading']          = function_exists( 'bb_get_activity_comment_loading' ) ? bb_get_activity_comment_loading() : 10;
+
 			// Posts in Activity Feeds.
 			$results['bp-feed-platform-new_avatar']            = bp_platform_is_feed_enable( 'bp-feed-platform-new_avatar' );
 			$results['bp-feed-platform-updated_profile']       = bp_platform_is_feed_enable( 'bp-feed-platform-updated_profile' );
@@ -427,6 +440,8 @@ class BP_REST_Settings_Endpoint extends WP_REST_Controller {
 					}
 				}
 			}
+
+			$results['bb_load_activity_per_request'] = bb_get_load_activity_per_request();
 		}
 
 		// Media settings.
@@ -581,6 +596,26 @@ class BP_REST_Settings_Endpoint extends WP_REST_Controller {
 			true === (bool) bp_get_option( 'bp-force-friendship-to-message', false )
 		) {
 			$results['bp_member_types_allowed_messaging_without_connection'] = get_option( 'bp_member_types_allowed_messaging_without_connection' );
+		}
+
+		// Cover image size warning.
+		if ( function_exists( 'bp_attachments_get_cover_image_dimensions' ) ) {
+			$cover_dimensions = bp_attachments_get_cover_image_dimensions();
+
+			$results['cover_image_warning'] = sprintf(
+				esc_html__( 'For best results, upload an image that is %1$spx by %2$spx or larger.', 'buddyboss' ),
+				(int) $cover_dimensions['width'],
+				(int) $cover_dimensions['height']
+			);
+		}
+
+		// Avatar size warning.
+		if ( function_exists( 'bp_core_avatar_full_height' ) && function_exists( 'bp_core_avatar_full_width' ) ) {
+			$results['avatar_size_warning'] = sprintf(
+				esc_html__( 'For best results, upload an image that is %1$spx by %2$spx or larger.', 'buddyboss' ),
+				bp_core_avatar_full_height(),
+				bp_core_avatar_full_width()
+			);
 		}
 
 		return $results;

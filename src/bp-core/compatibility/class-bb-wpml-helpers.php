@@ -63,6 +63,12 @@ if ( ! class_exists( 'BB_WPML_Helpers' ) ) {
 
 			// Trigger function to delete profile completion data when switch language.
 			add_action( 'wpml_language_has_switched', 'bp_core_xprofile_clear_all_user_progress_cache' );
+
+			add_filter( 'bp_profile_search_main_form', array( $this, 'bb_profile_search_main_form' ) );
+
+			// Forum/Topic.
+			add_filter( 'bbp_after_has_topics_parse_args', array( $this, 'bb_wpml_member_profile_topic_reply' ) );
+			add_filter( 'bbp_after_has_replies_parse_args', array( $this, 'bb_wpml_member_profile_topic_reply' ) );
 		}
 
 		/**
@@ -167,6 +173,55 @@ if ( ! class_exists( 'BB_WPML_Helpers' ) ) {
 			}
 
 			return $page_ids;
+		}
+
+		/**
+		 * Added support for the profile search translatable.
+		 *
+		 * @since BuddyBoss 2.4.60
+		 *
+		 * @param int $post_id Profile search post id.
+		 *
+		 * @return int
+		 */
+		public function bb_profile_search_main_form( $post_id ) {
+			global $sitepress;
+			if ( $sitepress->is_translated_post_type( 'bp_ps_form' ) ) {
+				$args = array(
+					'post_type'        => 'bp_ps_form',
+					'post_status'      => 'publish',
+					'numberposts'      => 1,
+					'fields'           => 'ids',
+					'suppress_filters' => false,
+					'lang'             => ICL_LANGUAGE_CODE, // Get the current language code.
+				);
+
+				$profile_query = get_posts( $args );
+				if ( ! empty( $profile_query ) ) {
+					return current( $profile_query );
+				}
+			}
+
+			return $post_id;
+		}
+
+		/**
+		 * Adjusts the query arguments for member profile topic replies when using WPML.
+		 * If WPML plugin is active and the query arguments include 'post_parent' set to 'any',
+		 * this function adjusts it to an empty string to ensure correct filtering.
+		 *
+		 * @since BuddyBoss 2.5.70
+		 *
+		 * @param array $r The query arguments.
+		 *
+		 * @return array Modified query arguments.
+		 */
+		public function bb_wpml_member_profile_topic_reply( $r ) {
+			if ( class_exists( 'Sitepress' ) && isset( $r['post_parent'] ) && 'any' === $r['post_parent'] ) {
+				$r['post_parent'] = '';
+			}
+
+			return $r;
 		}
 
 	}

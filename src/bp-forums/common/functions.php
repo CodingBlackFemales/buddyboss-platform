@@ -914,7 +914,7 @@ function bbp_check_for_moderation( $anonymous_data = false, $author_id = 0, $tit
 		$num_links = preg_match_all( '/<a [^>]*href/i', $content, $match_out );
 
 		// Allow for bumping the max to include the user's URL
-		$num_links = apply_filters( 'comment_max_links_url', $num_links, $_post['url'] );
+		$num_links = apply_filters( 'comment_max_links_url', $num_links, $_post['url'], $content );
 
 		// Das ist zu viele links!
 		if ( $num_links >= $max_links ) {
@@ -1178,6 +1178,7 @@ function bbp_notify_topic_subscribers( $reply_id = 0, $topic_id = 0, $forum_id =
 	remove_all_filters( 'bbp_get_reply_content' );
 	remove_all_filters( 'bbp_get_topic_title' );
 	add_filter( 'bbp_get_reply_content', 'convert_smilies', 20 );
+	add_filter( 'bbp_get_reply_content', 'bb_mention_add_user_dynamic_link' );
 
 	// Strip tags from text and setup mail data.
 	$topic_title   = wp_strip_all_tags( bbp_get_topic_title( $topic_id ) );
@@ -1310,7 +1311,7 @@ function bbp_notify_forum_subscribers( $topic_id = 0, $forum_id = 0, $anonymous_
 	remove_all_filters( 'bbp_get_topic_content' );
 	remove_all_filters( 'bbp_get_topic_title' );
 	add_filter( 'bbp_get_topic_content', 'convert_smilies', 20 );
-
+	add_filter( 'bbp_get_topic_content', 'bb_mention_add_user_dynamic_link' );
 
 	// Strip tags from text and setup mail data.
 	$topic_title   = wp_strip_all_tags( bbp_get_topic_title( $topic_id ) );
