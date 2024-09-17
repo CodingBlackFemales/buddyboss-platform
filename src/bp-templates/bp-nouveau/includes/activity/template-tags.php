@@ -281,7 +281,10 @@ function bp_nouveau_activity_state() {
 			?>
 			<?php
 			$activity_state_comment_class['activity_state_comment_class'] = 'activity-state-comments';
-			$activity_state_class            = apply_filters( 'bp_nouveau_get_activity_comment_buttons_activity_state', $activity_state_comment_class, $activity_id );
+			if ( $comment_count > 0 ) {
+				$activity_state_comment_class['has-comments'] = 'has-comments';
+			}
+			$activity_state_class = apply_filters( 'bp_nouveau_get_activity_comment_buttons_activity_state', $activity_state_comment_class, $activity_id );
 			?>
 			<a href="#" class="<?php echo esc_attr( trim( implode( ' ', $activity_state_class ) ) ); ?>">
 				<span class="comments-count" data-comments-count="<?php echo esc_attr( $comment_count ); ?>">
@@ -1668,7 +1671,23 @@ function bb_nouveau_activity_entry_bubble_buttons( $args = array() ) {
 		$args = array( 'container_classes' => array( 'bb-activity-more-options-wrap' ) );
 	}
 
-	$output = sprintf( '<span class="bb-activity-more-options-action" data-balloon-pos="up" data-balloon="%s"><i class="bb-icon-f bb-icon-ellipsis-h"></i></span><div class="bb-activity-more-options">%s</div>', esc_html__( 'More Options', 'buddyboss' ), $output );
+	ob_start();
+	bp_get_template_part( 'common/more-options-view' );
+	$template_part_content = ob_get_clean();
+
+	$output = sprintf(
+		'<span class="bb-activity-more-options-action" data-balloon-pos="up" data-balloon="%1$s">
+		<i class="bb-icon-f bb-icon-ellipsis-h"></i>
+		</span>
+		<div class="bb-activity-more-options bb_more_dropdown">
+			%2$s
+			%3$s
+		</div>
+		<div class="bb_more_dropdown_overlay"></div>',
+		esc_html__( 'More Options', 'buddyboss' ),
+		$template_part_content,
+		$output
+	);
 
 	bp_nouveau_wrapper( array_merge( $args, array( 'output' => $output ) ) );
 }
@@ -1923,8 +1942,8 @@ function bb_nouveau_get_activity_entry_bubble_buttons( $args ) {
 
 	// Pin post action only for allowed posts based on user role.
 	if (
-		'activity_update' === $activity_type &&
-		! in_array( $activities_template->activity->privacy, array ( 'media', 'document', 'video' ), true ) &&
+		'activity_comment' !== $activity_type &&
+		! in_array( $activities_template->activity->privacy, array( 'media', 'document', 'video' ), true ) &&
 		(
 			(
 				bp_is_group_activity() &&
@@ -2207,7 +2226,23 @@ function bb_nouveau_activity_comment_bubble_buttons( $args = array() ) {
 		$args = array( 'container_classes' => array( 'bb-activity-more-options-wrap' ) );
 	}
 
-	$output = sprintf( '<span class="bb-activity-more-options-action" data-balloon-pos="up" data-balloon="%s"><i class="bb-icon-f bb-icon-ellipsis-h"></i></span><div class="bb-activity-more-options">%s</div>', esc_html__( 'More Options', 'buddyboss' ), $output );
+	ob_start();
+	bp_get_template_part( 'common/more-options-view' );
+	$template_part_content = ob_get_clean();
+
+	$output = sprintf(
+		'<span class="bb-activity-more-options-action" data-balloon-pos="up" data-balloon="%1$s">
+		<i class="bb-icon-f bb-icon-ellipsis-h"></i>
+		</span>
+		<div class="bb-activity-more-options bb_more_dropdown">
+			%2$s
+			%3$s
+		</div>
+		<div class="bb_more_dropdown_overlay"></div>',
+		esc_html__( 'More Options', 'buddyboss' ),
+		$template_part_content,
+		$output
+	);
 
 	bp_nouveau_wrapper( array_merge( $args, array( 'output' => $output ) ) );
 }
