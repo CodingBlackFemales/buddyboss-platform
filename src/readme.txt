@@ -1,9 +1,9 @@
 === BuddyBoss Platform ===
 Contributors: buddyboss
 Requires at least: 4.9.1
-Tested up to: 6.4.3
+Tested up to: 6.6.1
 Requires PHP: 5.6.20
-Stable tag: 2.5.91
+Stable tag: 2.6.90
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,142 @@ Furthermore, BuddyBoss Platform can be activated and operate in just about any s
 * Extend BuddyBoss Platform with a third-party multi-network plugin to allow each site or network to have an isolated and dedicated community, all from the same WordPress installation.
 
 == Changelog ==
+
+= 2.6.90 =
+* New Feature! - In this update we have introduced Polls. Polls is a highly requested feature that allows Admins and group Owners & Moderators make use use of Polls either in the main activity feed or group activity feed.
+* Bug: Activity - UI issues in the activity feed model updated
+* Bug: Core - A fatal error occurred when using the SureCart plugin and running the WP plugin list command
+
+= 2.6.80 =
+* Enhancement: Activity - When replying to a comment we have added in the users tag to whom the reply is to to start the reply
+* Bug: Activity - When using the news feed that was added through the iframe, the tagging display was not properly displayed
+* Bug: Core - No Fatal error warning while the GD library and Imagick are disabled gets triggered
+* Bug: Core - Saving changes from the Appearance - Customize screen was not working while the Query monitor was enabled
+* Bug: Core - The fatal error has now been resolved when deleting the active_plugins from the Database
+* Bug: Core - The Georgian Unicode character numeric value is now correct, If the value reaches the maximum limit it will trigger an error, while if it's under 32 characters, it will be accepted
+* Bug: Groups - After suspending a group creator then trying to edit the group details with an admin it led to a 404 error page
+* Bug: TutorLMS - TutorLMS login widget is now working while reCAPTCHA is enabled
+
+= 2.6.72 =
+* Bug: Coding Standards - Security issue located when users are uploading documents, we have updated our code to solve this issue
+
+= 2.6.71 =
+* Bug: Activity - When viewing a comment with many replies that paginate on scroll then the replies where starting to show duplicates of earlier replies
+
+= 2.6.70 =
+* Bug: Activity - Removed moderator access to be able to delete organizer posts
+* Bug: Activity - When saving a draft post that has an emoji in would show a Wordpress link preview to Wordpress
+* Bug: Core - GIPHY key logic updated to check valid keys monthly and invalid keys weekly
+* Bug: Core - Image and videos would not showing post comments if redirecting to them from clicking a notification
+* Bug: Core - Pressing on the reactions menu in mobile view would trigger the app browser menu
+* Bug: Core - The .wp-link-embed class value was showing when adding a user to a group in the backend settings
+* Bug: Core - The cursor stopped showing in the text form after publishing or editing a post when using Safari browser
+* Bug: Core - The Move photo modal is now showing up after clicking the move option from the very first uploaded photo in the photos tab
+* Bug: Core - Turn off the notification icon on a single post page with the attached media file was not aligning correctly
+* Bug: Core - When entering the Confirm Email on the signup form, case sensitivity detected between emails would create an error
+* Bug: Core - “Right now in forums“ wp-admin dashboard widget was not showing correct numbers for Forum discussions
+* Bug: GIF picker was being cut off in mobile view for activity feed pages
+* Bug: LearnDash - The New Course Activity update that contained a multiple list block with an indent, no longer breaks the UI in the newsfeed
+
+= 2.6.60 =
+* Enhancement: Styling - We have updated to show a modal instead of dropdown for ellipsis in responsive view across the network
+* Bug: Activity - Multilevel activity replies graph is now displayed for betting viewing in the mobile view
+* Bug: Activity - The large space above a Gif post has now been reduced for better post styling
+* Bug: Core - Using reactions from a ‘View as’ account was showing an undefined error
+* Bug: MemberPress - The moderation content is no longer showing in the MemberPress single/archive course page
+* Bug: Profiles - The conditional profile fields were no longer being cleared when submitting the registration form while the entered data on the profile fields was invalid
+* Bug: Styling - Link preview images were showing too large in some cases
+* Bug: Styling - Removed the extra spacing after Group Visibility from the Group cards
+
+= 2.6.51 =
+* Bug: Core - Count was not loading correctly on Members page on the initial page load due to the performance tab page load option set to 2
+
+= 2.6.50 =
+* Enhancement: Members - Updated the member directory loading & filtering filtering logic to provide a much faster loading experience
+* Bug: Activity - GIF on multi level comment could not be posted without text
+* Bug: Activity - The Pin to feed option for published blog posts was not working correctly
+* Bug: Core - The Send button in the messaging screen is now showing when using a default WP Theme
+* Bug: Groups - The request option found on the group’s manage tab was not loading when the page request from Performance settings was set to 1
+* Bug: Messages - Messages were incorrectly sent to new registered users after account setup
+* Bug: Moderation - The Blocked/Reported member is no longer getting automatically suspended without the auto-suspend being configured
+* Bug: Profiles - Paragraph text profile field was not centering the text correctly
+
+= 2.6.41 =
+* Bug: Core - Security Issue for the Forum component updated
+
+= 2.6.40 =
+* Bug: Activity - When creating a group post via the news feed page, the user was unable to create another post to the same group as the last post
+* Bug: Core - Fatal error occurred when GD and Imagick libraries were disabled from the servers
+* Bug: Core - Logs from the background process when migrating reactions were showing on the debug log even without turning on DEBUG in the wp-config file
+* Bug: Core - Profile details fields have now been given a maximum of 32 character validation limit
+* Bug: Email Invites - Users can now send multiple invites multiple times to a single email address
+* Bug: Groups - Group header title would change to show the first subgroup title even it was not selected
+* Bug: Integration - AffiliateWP was encountering a critical error when activating BuddyBoss
+* Bug: Messages - Updated the text in messages to show Shift+Return to add new line
+* Bug: Styling - The emoji/gif picker was cropped in mobile view and was not displaying properly on the view more comments modal
+
+= 2.6.30 =
+* Enhancement: Core - We have added a new namespace (BuddyBossPlatform) in the composer library (vendor folder) so if existing plugins use the same composer library, it will work fine with our new namespace
+* Enhancement: Platform - We have added a new Platform plugin menu option called upgrade, where you can now more easily access and track, Platform, Server and Integrations knowledge
+* Bug: Activity - User timeline URL was redirected users to the main activity feed once WPML plugin was activated
+* Bug: Activity - When setting the page request from performance to option 1, the posts on the user timeline were being duplicated
+* Bug: Core - The Favicon was not displaying on the Messages page
+* Bug: Core - When using Windows inbuilt emoji’s in Edge or Chrome browser was causing the emoji to duplicate
+* Bug: Email - Mention email was not showing correct content which meant the View post button then also redirected to the wrong location
+* Bug: Email - Play icon on videos within a transactional email notification was broken
+* Bug: Forums - The GIF picker and preview in the Forum Discussion and replies are now showing properly on mobile responsive view
+* Bug: Platform - When the Media Uploading component was not enabled then the 3 dots (ellipses) drop-down menu on activity posts was not clickable
+* Bug: Styling - The mobile view display of multiple images uploaded on the activity feed was not displaying correctly
+
+= 2.6.21 =
+* Bug: Performance - When page load is set to 1 this caused the members page in groups to stop loading
+
+= 2.6.20 =
+* Enhancement: Core - Buddyboss default posts description have all been checked and updated to show correct information in the post
+* Enhancement: Platform - Removed app preview options in BuddyBoss - Settings - Groups due to the new group header design in the app this is no longer available
+* Bug: Activity - The GIF search was not working on multi-level comments
+* Bug: Activity - The reactions displayed on the mobile view were overlapping on the displayed screen
+* Bug: Activity - When page request was set to 1 in the new performance tab setting posted activity was delayed
+* Bug: Core - The conditional profile fields did not display error when the requirement fields were not filled
+* Bug: Core - The GIF picker was incorrect height which distorted the GIF previews slightly
+* Bug: Core - The scheduled posts modal will now open to the specific feed in the specific group where the scheduled post was originally created from
+* Bug: Forums - Removing tags on forum discussion was not working correctly after a user removed them tags were still showing
+* Bug: Groups - The More Options when opening a document was not clickable and there for did not display the content
+* Bug: Media - The photo preview was now showing when editing an activity or activity comment/reply while the WP offload plugin was enabled
+* Bug: Styling - Long comments did not break to a new line and was being displayed continuously in a straight line
+* Bug: Styling - Pasting long links in to an activity post comment broke the UI design which then the link overlapped
+* Bug: Translations - The word 'Uploading' when users are uploading media is now available for translation
+* Bug: WooCommerce - When mentioning users in a product description, the mentioned link lead to a 404 error page instead of the user profile
+
+= 2.6.11 =
+* Bug: Core - Updated Schedule posts logic for Group organisers and owners
+
+= 2.6.10 =
+* New Feature! Admins and Groups organizers and moderators now have the ability to use scheduling posts
+* Enhancement: Core - Updated REST API caching and purging business logic
+* Bug: Core - The "Like/Reaction" button in the newsfeed was causing a redirection when using an iOS device when holding the button to choose from the reactions menu
+* Bug: Core - When improper texts are added to the social network profile field, it would show ‘Array' error message
+* Bug: Core - When the emoji setting was disabled, the pop up modal display when clicking view more comments was not closable causing an error
+* Bug: Groups - Added new functionality that when suspending a group creator site admin then become the owner of the group
+* Bug: Integration - Error was showing on Homepage when Rank Math installed with BuddyBoss platform
+* Bug: Moderation - The Blocked/Reported member is no longer getting automatically suspended without the auto-suspend being configured
+* Bug: Multisite - The default profile fields repair tool was not working correctly in multisite
+* Bug: Platform - Updated media to add file type suffix so that Symlinks will work with offloading and CDN’s
+* Bug: Styling - Giphy panel would fall behind the buddy bar when expanded and no left sidebar widgets were used
+* Bug: Styling - Improved the UI to handle some inconsistencies for the activity comment forms when viewing in mobile web view
+* Bug: Styling - Removed the blue hover effect of the text formatting on the message form
+
+= 2.6.00 =
+* Enhancement: Groups - The group feed displays the group avatar and the users avatar overlayed we have removed the group avatar from posts within said groups
+* Bug: Activity - Elementor Activity feed widget would not allow the upload of gif images
+* Bug: Core - Network Search from Default 2022 Theme was showing a blank results page
+* Bug: Core - The _transient_timeout_bb_presence_api_mu_download now only called once a week
+* Bug: Core - Users are now prohibited from commenting on or liking posts if the post's privacy setting is set to ‘only me' or 'my connections’.
+* Bug: Core - When enabling repeater fields in profile field sets the values were not showing individually on the backend
+* Bug: Core - When using the WPML plugin the search result count number on the page and post was incorrect due to a conflict
+* Bug: Email - The image preview from the BuddyBoss email notification did not fit properly when using the Google App on mobile
+* Bug: Groups - Group forum discussion/replies which were also posted in News Feed, showed link preview in the News Feed even if the link preview is disabled for both Activity and Forum
+* Bug: Styling - Removed "0 Comments" text When there are no comments on an activity post
 
 = 2.5.91 =
 * Enhancement: Activity - Made small UI adjustments to the new activity pop-up modal

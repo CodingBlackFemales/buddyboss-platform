@@ -1597,7 +1597,11 @@ window.bp = window.bp || {};
 				var li_html = '';
 				for ( i = 0; i < response.data.length; i++ ) {
 					var bgNo = Math.floor( Math.random() * ( 6 - 1 + 1 ) ) + 1;
-					li_html += '<li class="bg' + bgNo + '" style="height: ' + response.data[ i ].images.fixed_width.height + 'px;">\n' +
+					var strictWidth = window.innerWidth > 768 ? 140 : 130;
+					var originalWidth = response.data[ i ].images.original.width;
+					var originalHeight = response.data[ i ].images.original.height;
+					var relativeHeight = (strictWidth * originalHeight) / originalWidth;
+					li_html += '<li class="bg' + bgNo + '" style="height: ' + relativeHeight + 'px;">\n' +
 						'\t<a class="found-media-item" href="' + response.data[ i ].images.original.url + '" data-id="' + response.data[ i ].id + '">\n' +
 						'\t\t<img src="' + response.data[ i ].images.fixed_width.url + '">\n' +
 						'\t</a>\n' +
@@ -1621,7 +1625,11 @@ window.bp = window.bp || {};
 				var li_html = '';
 				for ( i = 0; i < response.data.length; i++ ) {
 					var bgNo = Math.floor( Math.random() * ( 6 - 1 + 1 ) ) + 1;
-					li_html += '<li class="bg' + bgNo + '" style="height: ' + response.data[ i ].images.fixed_width.height + 'px;">\n' +
+					var strictWidth = window.innerWidth > 768 ? 140 : 130;
+					var originalWidth = response.data[ i ].images.original.width;
+					var originalHeight = response.data[ i ].images.original.height;
+					var relativeHeight = (strictWidth * originalHeight) / originalWidth;
+					li_html += '<li class="bg' + bgNo + '" style="height: ' + relativeHeight + 'px;">\n' +
 						'\t<a class="found-media-item" href="' + response.data[ i ].images.original.url + '" data-id="' + response.data[ i ].id + '">\n' +
 						'\t\t<img src="' + response.data[ i ].images.fixed_width.url + '">\n' +
 						'\t</a>\n' +
@@ -1881,7 +1889,11 @@ window.bp = window.bp || {};
 						var li_html = '';
 						for ( i = 0; i < response.data.length; i++ ) {
 							var bgNo = Math.floor( Math.random() * ( 6 - 1 + 1 ) ) + 1;
-							li_html += '<li class="bg' + bgNo + '" style="height: ' + response.data[ i ].images.fixed_width.height + 'px;">\n' +
+							var strictWidth = window.innerWidth > 768 ? 140 : 130;
+							var originalWidth = response.data[ i ].images.original.width;
+							var originalHeight = response.data[ i ].images.original.height;
+							var relativeHeight = (strictWidth * originalHeight) / originalWidth;
+							li_html += '<li class="bg' + bgNo + '" style="height: ' + relativeHeight + 'px;">\n' +
 								'\t<a class="found-media-item" href="' + response.data[ i ].images.original.url + '" data-id="' + response.data[ i ].id + '">\n' +
 								'\t\t<img src="' + response.data[ i ].images.fixed_width.url + '">\n' +
 								'\t</a>\n' +
@@ -1939,7 +1951,11 @@ window.bp = window.bp || {};
 						var li_html = '';
 						for ( i = 0; i < response.data.length; i++ ) {
 							var bgNo = Math.floor( Math.random() * ( 6 - 1 + 1 ) ) + 1;
-							li_html += '<li class="bg' + bgNo + '" style="height: ' + response.data[ i ].images.fixed_width.height + 'px;">\n' +
+							var strictWidth = window.innerWidth > 768 ? 140 : 130;
+							var originalWidth = response.data[ i ].images.original.width;
+							var originalHeight = response.data[ i ].images.original.height;
+							var relativeHeight = (strictWidth * originalHeight) / originalWidth;
+							li_html += '<li class="bg' + bgNo + '" style="height: ' + relativeHeight + 'px;">\n' +
 								'\t<a class="found-media-item" href="' + response.data[ i ].images.original.url + '" data-id="' + response.data[ i ].id + '">\n' +
 								'\t\t<img src="' + response.data[ i ].images.fixed_width.url + '">\n' +
 								'\t</a>\n' +
@@ -2016,7 +2032,11 @@ window.bp = window.bp || {};
 							var li_html = '';
 							for ( i = 0; i < response.data.length; i++ ) {
 								var bgNo = Math.floor( Math.random() * ( 6 - 1 + 1 ) ) + 1;
-								li_html += '<li class="bg' + bgNo + '" style="height: ' + response.data[ i ].images.fixed_width.height + 'px;">\n' +
+								var strictWidth = window.innerWidth > 768 ? 140 : 130;
+								var originalWidth = response.data[ i ].images.original.width;
+								var originalHeight = response.data[ i ].images.original.height;
+								var relativeHeight = (strictWidth * originalHeight) / originalWidth;
+								li_html += '<li class="bg' + bgNo + '" style="height: ' + relativeHeight + 'px;">\n' +
 									'\t<a class="found-media-item" href="' + response.data[ i ].images.original.url + '" data-id="' + response.data[ i ].id + '">\n' +
 									'\t\t<img src="' + response.data[ i ].images.fixed_width.url + '">\n' +
 									'\t</a>\n' +
@@ -2062,6 +2082,12 @@ window.bp = window.bp || {};
 			var $forums_video_container = target.closest( 'form' ).find( '#forums-post-video-uploader' );
 			if ( $forums_video_container.length ) {
 				self.resetForumsVideoComponent( $forums_video_container.data( 'key' ) );
+			}
+
+			// Scroll down to show GIF picker in full size.
+			if ( $( window ).width() <= 544 ) {
+				var FormPopup = target.closest( '.bb-modal' );
+				jQuery( FormPopup ).scrollTop( FormPopup[0].scrollHeight );
 			}
 		},
 
@@ -2112,6 +2138,9 @@ window.bp = window.bp || {};
 
 			if ( !_.isUndefined( BP_Nouveau.media ) && !_.isUndefined( BP_Nouveau.media.gif_api_key ) &&
 				!$targetEl.closest( '.post-gif' ).length ) {
+				if ( $targetEl.closest( '.gif-media-search-dropdown' ).length ) {
+					return;
+				}
 				target.find( 'form' ).find( '.gif-media-search-dropdown' ).removeClass( 'open' );
 				if ( $( '.gif-media-search-dropdown-standalone.open' ).length > 0 ) {
 					target.find( '.gif-media-search-dropdown-standalone' ).removeClass( 'open' );
@@ -2175,7 +2204,11 @@ window.bp = window.bp || {};
 							var li_html = '';
 							for ( i = 0; i < response.data.length; i++ ) {
 								var bgNo = Math.floor( Math.random() * ( 6 - 1 + 1 ) ) + 1;
-								li_html += '<li class="bg' + bgNo + '" style="height: ' + response.data[ i ].images.fixed_width.height + 'px;">\n' +
+								var strictWidth = window.innerWidth > 768 ? 140 : 130;
+								var originalWidth = response.data[ i ].images.original.width;
+								var originalHeight = response.data[ i ].images.original.height;
+								var relativeHeight = (strictWidth * originalHeight) / originalWidth;
+								li_html += '<li class="bg' + bgNo + '" style="height: ' + relativeHeight + 'px;">\n' +
 									'\t<a class="found-media-item" href="' + response.data[ i ].images.original.url + '" data-id="' + response.data[ i ].id + '">\n' +
 									'\t\t<img src="' + response.data[ i ].images.fixed_width.url + '">\n' +
 									'\t</a>\n' +
@@ -5168,7 +5201,7 @@ window.bp = window.bp || {};
 
 								// It's the very first media, let's make sure the container can welcome it!
 								if ( !$( '#media-stream ul.media-list' ).length ) {
-									$( '#media-stream' ).html( $( '<ul></ul>' ).addClass( 'media-list item-list bp-list bb-photo-list grid' ) );
+									location.reload( true );
 								}
 
 								if ( $( '.bb-photos-actions' ).length > 0 ) {
@@ -6206,6 +6239,8 @@ window.bp = window.bp || {};
 
 			event.preventDefault();
 			$( event.currentTarget ).closest( '.media-folder_items' ).toggleClass( 'is-visible' ).siblings( '.media-folder_items' ).removeClass( 'is-visible' );
+			$( event.currentTarget ).closest( '.media-folder_items' ).find( '.media-folder_action__list.bb_more_dropdown' ).toggleClass( 'open' ).closest( '.media-folder_items' ).siblings( '.media-folder_items' ).find( '.media-folder_action__list.bb_more_dropdown' ).removeClass( 'open' );
+			$( 'body' ).addClass( 'document_more_option_open' );
 		},
 
 		/**
@@ -6240,14 +6275,17 @@ window.bp = window.bp || {};
 			}
 
 			$( event.currentTarget ).closest( '.bb-activity-media-elem' ).toggleClass( 'is-visible' ).siblings().removeClass( 'is-visible' ).closest( '.activity-item' ).siblings().find( '.bb-activity-media-elem' ).removeClass( 'is-visible' );
+			$( event.currentTarget ).closest( '.bb-activity-media-elem' ).find( '.bb_more_dropdown' ).toggleClass( 'open' ).closest( '.bb-activity-media-elem' ).siblings().find( '.bb_more_dropdown' ).removeClass( 'open' ).closest( '.activity-item' ).siblings().find( '.bb-activity-media-elem .bb_more_dropdown' ).removeClass( 'open' );
+			$( 'body' ).addClass( 'document_more_option_open' );
 
 			if ( $( event.currentTarget ).closest( '.bb-activity-media-elem' ).length < 1 ) {
 				$( event.currentTarget ).closest( '.bb-photo-thumb' ).toggleClass( 'is-visible' ).parent().siblings().find( '.bb-photo-thumb' ).removeClass( 'is-visible' ).removeClass( 'is-visible' );
+				$( event.currentTarget ).closest( '.bb-photo-thumb' ).find( '.bb_more_dropdown' ).toggleClass( 'open' ).closest( '.bb-photo-thumb' ).parent().siblings().find( '.bb-photo-thumb .bb_more_dropdown' ).removeClass( 'open' );
 			}
 
 			if ( event.currentTarget.tagName.toLowerCase() == 'a' && ( !$( event.currentTarget ).hasClass( 'document-action_more' ) && !$( event.currentTarget ).hasClass( 'media-action_more' ) ) ) {
-				$( event.currentTarget ).closest( '.bb-activity-media-elem' ).removeClass( 'is-visible' );
-				$( event.currentTarget ).closest( '.bb-photo-thumb' ).removeClass( 'is-visible' );
+				$( event.currentTarget ).closest( '.bb-activity-media-elem' ).removeClass( 'is-visible' ).find( '.bb_more_dropdown' ).removeClass( 'open' );
+				$( event.currentTarget ).closest( '.bb-photo-thumb' ).removeClass( 'is-visible' ).find( '.bb_more_dropdown' ).removeClass( 'open' );
 			}
 		},
 
@@ -6283,6 +6321,11 @@ window.bp = window.bp || {};
 			$( '.bb-item-thumb.is-visible' ).removeClass( 'is-visible' );
 			$( '.bb-activity-video-elem.is-visible' ).removeClass( 'is-visible' );
 			$( '.video-action-wrap.item-action-wrap.is-visible' ).removeClass( 'is-visible' );
+			$( '.video-action-wrap .bb_more_dropdown' ).removeClass( 'open' );
+			$( '.bb-activity-media-elem .bb_more_dropdown' ).removeClass( 'open' );
+			$( '.bb-photo-thumb .bb_more_dropdown' ).removeClass( 'open' );
+			$( '.media-folder_items .bb_more_dropdown' ).removeClass( 'open' );
+			$( 'body' ).removeClass( 'document_more_option_open video_more_option_open item_more_option_open' );
 
 		},
 
@@ -6423,7 +6466,7 @@ window.bp = window.bp || {};
 			} else {
 				$( nav ).find( 'a#albums' ).append( '<span class="count">' + count + '</span>' );
 			}
-		}
+		},
 	};
 
 	/**
