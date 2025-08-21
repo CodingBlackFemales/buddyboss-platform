@@ -453,8 +453,12 @@ function bp_do_activation_redirect() {
 		update_user_option( bp_loggedin_user_id(), 'metaboxhidden_nav-menus', $get_existing_option ); // update the user metaboxes.
 	}
 
-	// Redirect to dashboard and trigger the Hello screen.
-	wp_safe_redirect( add_query_arg( $query_args, bp_get_admin_url( '?hello=buddyboss' ) ) );
+	/**
+	 * Fires before the BuddyBoss activation redirect.
+	 *
+	 * @since BuddyBoss 2.10.0
+	 */
+	do_action( 'bb_do_activation_redirect', $query_args );
 }
 
 /**
@@ -701,7 +705,6 @@ function bp_core_get_admin_tabs( $active_tab = '' ) {
 			'name'  => __( 'Credits', 'buddyboss' ),
 			'class' => 'bp-credits',
 		),
-
 	);
 
 	/**
@@ -1211,7 +1214,7 @@ function bp_admin_wp_nav_menu_meta_box() {
 		return;
 	}
 
-	add_meta_box( 'add-buddypress-nav-menu', __( 'BuddyBoss', 'buddyboss' ), 'bp_admin_do_wp_nav_menu_meta_box', 'nav-menus', 'side', 'default' );
+	add_meta_box( 'add-buddypress-nav-menu', 'BuddyBoss', 'bp_admin_do_wp_nav_menu_meta_box', 'nav-menus', 'side', 'default' );
 
 	add_action( 'admin_print_footer_scripts', 'bp_admin_wp_nav_menu_restrict_items' );
 }
@@ -1556,10 +1559,14 @@ function bp_core_admin_user_row_actions( $actions, $user_object ) {
 					$url
 				);
 				$unsuspend_link       = wp_nonce_url( $url, 'bp-suspend-user' );
+				$suspend_id           = bp_is_active( 'moderation' ) ? BP_Core_Suspend::get_suspend_id( $user_id, BP_Moderation_Members::$moderation_type ) : '';
+				$meta_value           = ! empty( $suspend_id ) ? bb_suspend_get_meta( $suspend_id, 'suspend' ) : '';
 				$actions['unsuspend'] = sprintf(
-					'<a class="bp-unsuspend-user ham" href="%1$s" data-action="unsuspend">%2$s</a>',
-					esc_url( $unsuspend_link ),
-					esc_html__( 'Unsuspend', 'buddyboss' )
+					'<a class="ham %1$s" href="%2$s" data-action="unsuspend" %3$s>%4$s</a>',
+					! empty( $meta_value ) ? 'disabled' : 'bp-unsuspend-user',
+					! empty( $meta_value ) ? '#' : esc_url( $unsuspend_link ),
+					! empty( $meta_value ) ? 'data-bp-tooltip-pos="up" data-bp-tooltip="' . esc_attr__( 'The background process is currently in the queue. Please refresh the page after a short while', 'buddyboss' ) . '"' : '',
+					esc_html__( 'Unsuspend', 'buddyboss' ),
 				);
 
 				// If not already spammed, create spam link.
@@ -1572,12 +1579,18 @@ function bp_core_admin_user_row_actions( $actions, $user_object ) {
 					$url
 				);
 				$suspend_link       = wp_nonce_url( $url, 'bp-suspend-user' );
+				$suspend_id         = bp_is_active( 'moderation' ) ? BP_Core_Suspend::get_suspend_id( $user_id, BP_Moderation_Members::$moderation_type ) : '';
+				$meta_value         = ! empty( $suspend_id ) ? bb_suspend_get_meta( $suspend_id, 'unsuspend' ) : '';
 				$actions['suspend'] = sprintf(
-					'<a class="submitdelete bp-suspend-user" href="%1$s" data-action="suspend">%2$s</a>',
-					esc_url( $suspend_link ),
+					'<a class="submitdelete %1$s" href="%2$s" data-action="suspend" %3$s>%4$s</a>',
+					! empty( $meta_value ) ? 'disabled' : 'bp-suspend-user',
+					! empty( $meta_value ) ? '#' : esc_url( $suspend_link ),
+					! empty( $meta_value ) ? 'data-bp-tooltip-pos="up" data-bp-tooltip="' . esc_attr__( 'The background process is currently in the queue. Please refresh the page after a short while', 'buddyboss' ) . '"' : '',
 					esc_html__( 'Suspend', 'buddyboss' )
 				);
 			}
+
+			unset( $suspend_link, $suspend_id, $meta_value );
 		}
 	}
 
@@ -3199,37 +3212,18 @@ add_action( 'save_post', 'bp_change_forum_slug_quickedit_save_page', 10, 2 );
  *
  * @since BuddyBoss 1.3.5
  *
- * @param array          $categories Array of block categories.
- * @param string|WP_Post $post       Post being loaded.
+ * @param array               $categories          Array of block categories.
+ * @param string|WP_Post|null $editor_name_or_post Post being loaded.
  */
-function bp_block_category( $categories = array(), $post = null ) {
+function bp_block_category( $categories = array(), $editor_name_or_post = null ) {
+	if ( $editor_name_or_post instanceof WP_Post ) {
+		$post_types = array( 'post', 'page' );
 
-	if ( class_exists( 'WP_Block_Editor_Context' ) && $post instanceof WP_Block_Editor_Context && ! empty( $post->post ) ) {
-		$post = $post->post;
-	}
-
-	if ( ! ( $post instanceof WP_Post ) ) {
-		return $categories;
-	}
-
-	/**
-	 * Filter here to add/remove the supported post types for the BuddyPress blocks category.
-	 *
-	 * @since 5.0.0
-	 *
-	 * @param array $value The list of supported post types. Defaults to WordPress built-in ones.
-	 */
-	$post_types = apply_filters( 'bp_block_category_post_types', array( 'post', 'page' ) );
-
-	if ( ! $post_types ) {
-		return $categories;
-	}
-
-	// Get the post type of the current item.
-	$post_type = get_post_type( $post );
-
-	if ( ! in_array( $post_type, $post_types, true ) ) {
-		return $categories;
+		/*
+		 * As blocks are always loaded even if the category is not available, there's no more interest
+		 * in disabling the BuddyBoss category.
+		 */
+		apply_filters_deprecated( 'bp_block_category_post_types', array( $post_types ), '2.9.00' );
 	}
 
 	return array_merge(
@@ -3237,7 +3231,7 @@ function bp_block_category( $categories = array(), $post = null ) {
 		array(
 			array(
 				'slug'  => 'buddyboss',
-				'title' => __( 'BuddyBoss', 'buddyboss' ),
+				'title' => 'BuddyBoss',
 				'icon'  => '',
 			),
 		)
@@ -3251,9 +3245,9 @@ function bp_block_category( $categories = array(), $post = null ) {
  */
 function bb_block_init_category_filter() {
 	if ( function_exists( 'get_default_block_categories' ) ) {
-		add_filter( 'block_categories_all', 'bp_block_category', 30, 2 );
+		add_filter( 'block_categories_all', 'bp_block_category', 1, 2 );
 	} else {
-		add_filter( 'block_categories', 'bp_block_category', 30, 2 );
+		add_filter( 'block_categories', 'bp_block_category', 1, 2 );
 	}
 }
 
@@ -3422,6 +3416,14 @@ function bb_get_pro_label_notice( $type = 'default' ) {
 			(
 				'polls' === $type &&
 				version_compare( bb_platform_pro()->version, bb_pro_poll_version(), '<' )
+			) ||
+			(
+				'sso' === $type &&
+				version_compare( bb_platform_pro()->version, bb_pro_sso_version(), '<' )
+			) ||
+			(
+				'group_activity_topics' === $type &&
+				version_compare( bb_platform_pro()->version, bb_pro_group_activity_topics_version(), '<' )
 			)
 		)
 	) {
@@ -3486,6 +3488,14 @@ function bb_get_pro_fields_class( $type = 'default' ) {
 			(
 				'polls' === $type &&
 				version_compare( bb_platform_pro()->version, bb_pro_poll_version(), '<' )
+			) ||
+			(
+				'sso' === $type &&
+				version_compare( bb_platform_pro()->version, bb_pro_sso_version(), '<' )
+			) ||
+			(
+				'group_activity_topics' === $type &&
+				version_compare( bb_platform_pro()->version, bb_pro_group_activity_topics_version(), '<' )
 			)
 		)
 	) {
@@ -3715,10 +3725,18 @@ function bb_cpt_feed_enabled_disabled() {
 		remove_filter( 'bb_feed_excluded_post_types', 'bb_feed_not_allowed_tutorlms_post_types' );
 	}
 
+	if ( function_exists( 'bb_feed_not_allowed_meprlms_post_types' ) ) {
+		remove_filter( 'bb_feed_excluded_post_types', 'bb_feed_not_allowed_meprlms_post_types' );
+	}
+
 	$post_types = bb_feed_post_types();
 
 	if ( function_exists( 'bb_feed_not_allowed_tutorlms_post_types' ) ) {
 		add_filter( 'bb_feed_excluded_post_types', 'bb_feed_not_allowed_tutorlms_post_types' );
+	}
+
+	if ( function_exists( 'bb_feed_not_allowed_meprlms_post_types' ) ) {
+		add_filter( 'bb_feed_excluded_post_types', 'bb_feed_not_allowed_meprlms_post_types' );
 	}
 
 	foreach ( $post_types as $cpt ) {

@@ -1604,7 +1604,7 @@ function bp_groups_admin_edit_metabox_status( $item ) {
  *
  * @param BP_Groups_Group|null $group The BP_Groups_Group object corresponding to the group being edited.
  */
-function bp_groups_admin_edit_metabox_group_type( BP_Groups_Group $group = null ) {
+function bp_groups_admin_edit_metabox_group_type( ?BP_Groups_Group $group = null ) {
 
 	// Bail if no group ID.
 	if ( empty( $group->id ) ) {
@@ -2280,7 +2280,7 @@ function bp_group_type_permissions_meta_box( $post ) {
 
 			<?php
 			if ( class_exists( 'BB_Platform_Pro' ) && function_exists( 'is_plugin_active' ) && is_plugin_active( 'buddyboss-platform-pro/buddyboss-platform-pro.php' ) ) {
-				$plugin_data = get_plugin_data( trailingslashit( WP_PLUGIN_DIR ) . 'buddyboss-platform-pro/buddyboss-platform-pro.php' );
+				$plugin_data = get_plugin_data( trailingslashit( WP_PLUGIN_DIR ) . 'buddyboss-platform-pro/buddyboss-platform-pro.php', false, false );
 				$plugin_version = ! empty( $plugin_data['Version'] ) ? $plugin_data['Version'] : 0;
 				if ( $plugin_version && version_compare( $plugin_version, '1.0.9', '>' ) ) {
 					echo '<tr><td>';

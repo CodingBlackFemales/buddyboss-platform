@@ -486,7 +486,7 @@ function bp_core_get_userlink( $user_id, $no_anchor = false, $just_link = false 
 	 * @param string $value   Link text based on passed parameters.
 	 * @param int    $user_id ID of the user to check.
 	 */
-	return apply_filters( 'bp_core_get_userlink', '<a href="' . $url . '">' . $display_name . '</a>', $user_id );
+	return apply_filters( 'bp_core_get_userlink', '<a href="' . $url . '" data-bb-hp-profile="' . esc_attr( $user_id ) . '">' . $display_name . '</a>', $user_id );
 }
 
 /**
@@ -561,7 +561,7 @@ function bp_core_get_user_displayname( $user_id_or_username, $current_user_id = 
 		}
 	} else {
 		$last_name_field_id = bp_xprofile_lastname_field_id();
-		if ( in_array( $last_name_field_id, $list_fields ) ) {
+		if ( in_array( $last_name_field_id, $list_fields ) && ! empty( xprofile_get_field_data( $last_name_field_id, $user_id ) ) ) {
 			$last_name = xprofile_get_field_data( $last_name_field_id, $user_id );
 			$full_name = str_replace( ' ' . $last_name, '', get_the_author_meta( 'display_name', $user_id ) );
 		} else {
@@ -706,9 +706,20 @@ function bp_member_object_template_results_members_all_scope( $querystring, $obj
 
 	$querystring = bp_parse_args( $querystring );
 
-	if ( bp_is_active( 'activity' ) && bp_is_activity_follow_active() && isset( $querystring['scope'] ) && 'following' === $querystring['scope'] ) {
+	if (
+		bp_is_active( 'activity' ) &&
+		bp_is_activity_follow_active() &&
+		isset( $querystring['scope'] ) &&
+		(
+			'following' === $querystring['scope'] ||
+			'followers' === $querystring['scope']
+		)
+
+	) {
 		$counts = bp_total_follow_counts();
-		if ( ! empty( $counts['following'] ) ) {
+		if ( 'following' === $querystring['scope'] && ! empty( $counts['following'] ) ) {
+			unset( $querystring['include'] );
+		} elseif ( 'followers' === $querystring['scope'] && ! empty( $counts['followers'] ) ) {
 			unset( $querystring['include'] );
 		}
 	}
@@ -1861,6 +1872,8 @@ function bp_core_signup_user( $user_login, $user_password, $user_email, $usermet
 	// We need to cast $user_id to pass to the filters.
 	$user_id = false;
 
+	$activation_key = '';
+
 	// Multisite installs have their own install procedure.
 	if ( is_multisite() ) {
 		wpmu_signup_user( $user_login, $user_email, $usermeta );
@@ -1902,22 +1915,6 @@ function bp_core_signup_user( $user_login, $user_password, $user_email, $usermet
 		);
 
 		BP_Signup::add( $args );
-
-		/**
-		 * Filters if BuddyPress should send an activation key for a new signup.
-		 *
-		 * @since BuddyPress 1.2.3
-		 *
-		 * @param bool   $value          Whether or not to send the activation key.
-		 * @param int    $user_id        User ID to send activation key to.
-		 * @param string $user_email     User email to send activation key to.
-		 * @param string $activation_key Activation key to be sent.
-		 * @param array  $usermeta       Miscellaneous metadata about the user (blog-specific
-		 *                               signup data, xprofile data, etc).
-		 */
-		if ( apply_filters( 'bp_core_signup_send_activation_key', true, $user_id, $user_email, $activation_key, $usermeta ) ) {
-			bp_core_signup_send_validation_email( $user_id, $user_email, $activation_key, $user_login );
-		}
 	}
 
 	$bp->signup->username = $user_login;
@@ -1935,6 +1932,25 @@ function bp_core_signup_user( $user_login, $user_password, $user_email, $usermet
 	 *                                       signup data, xprofile data, etc).
 	 */
 	do_action( 'bp_core_signup_user', $user_id, $user_login, $user_password, $user_email, $usermeta );
+
+	/**
+	 * Filters if BuddyPress should send an activation key for a new signup.
+	 *
+	 * @since BuddyPress 1.2.3
+	 *
+	 * @param bool   $value          Whether or not to send the activation key.
+	 * @param int    $user_id        User ID to send activation key to.
+	 * @param string $user_email     User email to send activation key to.
+	 * @param string $activation_key Activation key to be sent.
+	 * @param array  $usermeta       Miscellaneous metadata about the user (blog-specific
+	 *                               signup data, xprofile data, etc).
+	 */
+	if (
+		! empty( $activation_key ) &&
+		apply_filters( 'bp_core_signup_send_activation_key', true, $user_id, $user_email, $activation_key, $usermeta )
+	) {
+		bp_core_signup_send_validation_email( $user_id, $user_email, $activation_key, $user_login );
+	}
 
 	return $user_id;
 }
@@ -2301,6 +2317,18 @@ function bp_core_map_user_registration( $user_id, $by_pass = false ) {
 		xprofile_set_field_data( bp_xprofile_firstname_field_id(), $user_id, $firstname );
 		xprofile_set_field_data( bp_xprofile_lastname_field_id(), $user_id, $lastname );
 		xprofile_set_field_data( bp_xprofile_nickname_field_id(), $user_id, $nickname );
+
+		$default_field_ids = array(
+			bp_xprofile_firstname_field_id(),
+			bp_xprofile_lastname_field_id(),
+			bp_xprofile_nickname_field_id(),
+		);
+
+		// Set visibility levels for the default fields.
+		foreach ( $default_field_ids as $field_id ) {
+			$visibility = xprofile_get_field_visibility_level( $field_id, $user_id );
+			xprofile_set_field_visibility_level( $field_id, $user_id, $visibility );
+		}
 
 		bp_xprofile_update_display_name( $user_id );
 	}
@@ -2870,7 +2898,7 @@ function bp_remove_member_type( $user_id, $member_type ) {
 
 	// No need to continue if the member doesn't have the type.
 	$existing_types = bp_get_member_type( $user_id, false );
-	if ( ! in_array( $member_type, $existing_types, true ) ) {
+	if ( empty( $existing_types ) || ! in_array( $member_type, (array) $existing_types, true ) ) {
 		return false;
 	}
 
@@ -3946,21 +3974,21 @@ function bp_get_user_member_type( $user_id ) {
 
 	$member_type = __( 'Member', 'buddyboss' );
 
-	if ( true === bp_member_type_enable_disable() ) {
-		if ( true === bp_member_type_display_on_profile() ) {
+	if (
+		true === bp_member_type_enable_disable() &&
+		true === bp_member_type_display_on_profile() &&
+		! in_array( bp_get_xprofile_member_type_field_id(), bp_xprofile_get_hidden_fields_for_user( $user_id ), true )
+	) {
+		// Get the profile type.
+		$type     = bp_get_member_type( $user_id );
+		$type_obj = bp_get_member_type_object( $type );
 
-			// Get the profile type.
-			$type = bp_get_member_type( $user_id );
-
-			// Output the.
-			if ( $type_obj = bp_get_member_type_object( $type ) ) {
-				$member_type = $type_obj->labels['singular_name'];
-			}
-
-			$string = '<span class="bp-member-type bb-current-member-' . esc_attr( $type ) . '">' . $member_type . '</span>';
-		} else {
-			$string = '<span class="bp-member-type">' . $member_type . '</span>';
+		// Output the.
+		if ( ! empty( $type_obj ) && isset( $type_obj->labels ) ) {
+			$member_type = $type_obj->labels['singular_name'];
 		}
+
+		$string = '<span class="bp-member-type bb-current-member-' . esc_attr( $type ) . '">' . $member_type . '</span>';
 	} else {
 		$string = '<span class="bp-member-type">' . $member_type . '</span>';
 	}
@@ -4568,7 +4596,7 @@ add_action( 'user_register', 'bp_assign_default_member_type_to_activate_user_on_
 function bp_allow_user_to_send_invites() {
 
 	// if user not logged in and component not active then return false.
-	if ( ! bp_is_active( 'invites' ) && ! is_user_logged_in() ) {
+	if ( ! bp_is_active( 'invites' ) || ! is_user_logged_in() ) {
 		return false;
 	}
 

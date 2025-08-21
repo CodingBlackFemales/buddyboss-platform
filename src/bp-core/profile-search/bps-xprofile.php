@@ -449,15 +449,22 @@ function bp_ps_gender_setup( $fields ) {
 
 		$options = array();
 		$rows    = $field->get_children();
+		$order   = bp_xprofile_get_meta( $field->id, 'field', 'gender-option-order' );
+		$order   = ! empty( $order ) ? $order : array();
+
 		if ( is_array( $rows ) ) {
-			foreach ( $rows as $row ) {
-				if ( '1' === $row->option_order ) {
-					$option_value = 'his_' . $row->name;
-				} elseif ( '2' === $row->option_order ) {
-					$option_value = 'her_' . $row->name;
-				} else {
-					$option_value = 'their_' . $row->name;
+			foreach ( $rows as $k => $row ) {
+
+				// Determine gender prefix based on order saved in meta or option_order.
+				$gender_key = ! empty( $order ) && isset( $order[ $k ] ) ? $order[ $k ] : $row->option_order;
+				$prefix     = 'their_'; // Default for others.
+				if ( in_array( $gender_key, array( 'male', '1' ), true ) ) {
+					$prefix = 'his_';
+				} elseif ( in_array( $gender_key, array( 'female', '2' ), true ) ) {
+					$prefix = 'her_';
 				}
+				$option_value = $prefix . $row->name;
+
 				$options[ stripslashes( trim( $option_value ) ) ] = stripslashes( trim( $row->name ) );
 			}
 
@@ -583,10 +590,12 @@ function bp_ps_learndash_get_users_for_course( $course_id = 0, $query_args = arr
 		$query_args['role__not_in'] = array( 'administrator' );
 	}
 
-	$course_access_list = get_course_meta_setting( $course_id, 'course_access_list' );
-	$course_user_ids    = array_merge( $course_user_ids, $course_access_list );
+	if ( function_exists( 'learndash_use_legacy_course_access_list' ) && true === learndash_use_legacy_course_access_list() ) {
+		$course_access_list = function_exists( 'learndash_get_course_meta_setting' ) ? learndash_get_course_meta_setting( $course_id, 'course_access_list' ) : get_course_meta_setting( $course_id, 'course_access_list' );
+		$course_user_ids    = array_merge( $course_user_ids, $course_access_list );
+	}
 
-	$course_access_users = get_course_users_access_from_meta( $course_id );
+	$course_access_users = function_exists( 'learndash_get_course_users_access_from_meta' ) ? learndash_get_course_users_access_from_meta( $course_id ) : get_course_users_access_from_meta( $course_id );
 	$course_user_ids     = array_merge( $course_user_ids, $course_access_users );
 
 	if ( function_exists( 'learndash_get_course_groups_users_access' ) ) {
@@ -594,15 +603,16 @@ function bp_ps_learndash_get_users_for_course( $course_id = 0, $query_args = arr
 	} else {
 		$course_groups_users = get_course_groups_users_access( $course_id );
 	}
+
 	$course_user_ids = array_merge( $course_user_ids, $course_groups_users );
 
 	if ( ! empty( $course_user_ids ) ) {
 		$course_user_ids = array_unique( $course_user_ids );
 	}
 
-	$course_expired_access_users = get_course_expired_access_from_meta( $course_id );
+	$course_expired_access_users = function_exists( 'learndash_get_course_expired_access_from_meta' ) ? learndash_get_course_expired_access_from_meta( $course_id ) : get_course_expired_access_from_meta( $course_id );
 	if ( ! empty( $course_expired_access_users ) ) {
-		$course_user_ids = array_diff( $course_access_list, $course_expired_access_users );
+		$course_user_ids = array_diff( $course_user_ids, $course_expired_access_users );
 	}
 
 	if ( ! empty( $course_user_ids ) ) {
@@ -675,19 +685,31 @@ function bp_ps_anyfield_search( $f ) {
 
 	switch ( $filter ) {
 		case 'contains':
-			$escaped                 = '%' . bp_ps_esc_like( $value ) . '%';
-			$sql['where'][ $filter ] = $wpdb->prepare( 'xpd.value LIKE %s', $escaped );
+		case 'like':
+			$search_term_array = bb_search_get_search_keywords_by_term( $value, 'anyfield' );
+			if ( ! empty( $search_term_array ) ) {
+				$every_word_clauses = array();
+				$query_placeholder  = array();
+				foreach ( $search_term_array as $term ) {
+					$every_word_clauses[] = "( xpd.value LIKE %s )";
+					if ( 'like' === $filter ) {
+						$term                = str_replace( '\\\\%', '\\%', $term );
+						$term                = str_replace( '\\\\_', '\\_', $term );
+						$query_placeholder[] = '%' . $term . '%';
+					} else {
+						$query_placeholder[] = '%' . bp_ps_esc_like( $term ) . '%';
+					}
+				}
+				$sql['where'][ $filter ] = $wpdb->prepare( implode( ' OR ', $every_word_clauses ), ...$query_placeholder );
+			} else {
+				$sql['where'][ $filter ] = '1=1';
+			}
 			break;
 
 		case '':
 			$sql['where'][ $filter ] = $wpdb->prepare( 'xpd.value = %s', $value );
 			break;
 
-		case 'like':
-			$value                   = str_replace( '\\\\%', '\\%', $value );
-			$value                   = str_replace( '\\\\_', '\\_', $value );
-			$sql['where'][ $filter ] = $wpdb->prepare( 'xpd.value LIKE %s', $value );
-			break;
 	}
 
 	$sql   = apply_filters( 'bp_ps_field_sql', $sql, $f );

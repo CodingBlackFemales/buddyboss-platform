@@ -370,7 +370,7 @@ class BB_Recaptcha_Admin_Tab extends BP_Admin_Integration_tab {
 	public function setting_callback_recaptcha_tutorial() {
 		?>
 		<p>
-			<a class="button" href="
+			<a class="button" target="_blank" href="
 			<?php
 				echo esc_url(
 					bp_get_admin_url(
@@ -557,7 +557,7 @@ class BB_Recaptcha_Admin_Tab extends BP_Admin_Integration_tab {
 					</h2>
 				</div>
 				<div class="bp-hello-close">
-					<button type="button" class="close-modal button">
+					<button type="button" class="close-modal button" aria-label="<?php esc_attr_e( 'Close', 'buddyboss' ); ?>">
 						<i class="bb-icon-f bb-icon-times"></i>
 					</button>
 				</div>

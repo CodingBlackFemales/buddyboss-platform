@@ -992,8 +992,9 @@ add_filter( 'bb_messages_validate_thread', 'bb_messages_validate_groups_thread' 
 function bb_messages_compose_action_sub_nav() {
 	?>
 	<div class="bb_more_options message-action-options">
-		<a href="#" class="bb_more_options_action" data-action="more_options">
+		<a href="#" class="bb_more_options_action" data-action="more_options" aria-label="<?php esc_attr_e( 'More options', 'buddyboss' ); ?>">
 			<i class="bb-icon-f bb-icon-ellipsis-h"></i>
+			<span class="bp-screen-reader-text"><?php esc_html_e( 'More options', 'buddyboss' ); ?></span>
 		</a>
 		<ul class="bb_more_options_list message_action__list">
 			<li class="archived-messages">
@@ -1159,6 +1160,7 @@ function bb_digest_message_email_notifications() {
 			}
 
 			if ( ! empty( $threads ) ) {
+				add_filter( 'bp_xprofile_get_hidden_field_types_for_user', 'bb_bypass_name_privacy_for_admin', 10, 3 );
 				foreach ( $threads as $thread ) {
 
 					if ( empty( $thread['recipients'] ) ) {
@@ -1196,6 +1198,7 @@ function bb_digest_message_email_notifications() {
 						bb_render_digest_messages_template( $thread['recipients'], $thread['thread_id'] );
 					}
 				}
+				remove_filter( 'bp_xprofile_get_hidden_field_types_for_user', 'bb_bypass_name_privacy_for_admin', 10, 3 );
 			}
 		}
 	}
@@ -1237,4 +1240,28 @@ function bb_clear_group_thread_cache( $thread_id ) {
 	bp_messages_delete_thread_paginated_messages_cache( $thread_id );
 	wp_cache_delete( 'thread_recipients_' . $thread_id, 'bp_messages' );
 	bp_core_reset_incrementor( 'bp_messages' );
+}
+
+/**
+ * Function to bypass the name privacy for admin.
+ *
+ * @since BuddyBoss 2.7.00
+ *
+ * @param array $hidden_levels     Hidden levels.
+ * @param int   $displayed_user_id Displayed user id.
+ * @param int   $current_user_id   Current user id.
+ *
+ * @return array
+ */
+function bb_bypass_name_privacy_for_admin( $hidden_levels, $displayed_user_id, $current_user_id ) {
+	if ( empty( $current_user_id ) ) {
+		return array();
+	}
+
+	$current_user_data = get_userdata( $current_user_id );
+	if ( in_array( 'administrator', $current_user_data->roles, true ) ) {
+		$hidden_levels = array();
+	}
+
+	return $hidden_levels;
 }

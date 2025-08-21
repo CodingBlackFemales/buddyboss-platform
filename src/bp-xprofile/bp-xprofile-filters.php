@@ -834,7 +834,7 @@ function xprofile_filter_get_user_display_name( $full_name, $user_id, $current_u
 		if ( ! empty( $list_fields ) ) {
 			$last_name_field_id = bp_xprofile_lastname_field_id();
 
-			if ( in_array( $last_name_field_id, $list_fields ) ) {
+			if ( in_array( $last_name_field_id, $list_fields ) && ! empty( xprofile_get_field_data( $last_name_field_id, $user_id ) ) ) {
 				$last_name = xprofile_get_field_data( $last_name_field_id, $user_id );
 				$full_name = str_replace( ' ' . $last_name, '', $full_name );
 			}
@@ -864,10 +864,18 @@ function bb_xprofile_validate_character_limit_value( $retval, $field_id, $value 
 
 	$value = strtolower( $value );
 
-	if ( class_exists( 'Normalizer' ) ) {
-
-		// Ensures that the combined characters are treated as a single character.
-		$value = Normalizer::normalize( $value, 16 );
+	if (
+		function_exists( 'normalizer_is_normalized' )
+		&& function_exists( 'normalizer_normalize' )
+	) {
+		try {
+			// Ensures that the combined characters are treated as a single character.
+			if ( ! normalizer_is_normalized( $value ) ) {
+				$value = normalizer_normalize( $value );
+			}
+		} catch ( Exception $e ) {
+			// Ignore the exception, continue execution.
+		}
 	}
 
 	$field_name = xprofile_get_field( $field_id )->name;
@@ -942,24 +950,24 @@ function bp_xprofile_validate_nickname_value( $retval, $field_id, $value, $user_
 	// must be shorter then 32 characters
 	$nickname_length = apply_filters( 'xprofile_nickname_max_length', 32 );
 
-	if ( class_exists( 'Normalizer' ) ) {
-
-		// Ensures that the combined characters are treated as a single character.
-		$value = Normalizer::normalize( $value, 16 );
+	if (
+		function_exists( 'normalizer_is_normalized' )
+		&& function_exists( 'normalizer_normalize' )
+	) {
+		try {
+			// Ensures that the combined characters are treated as a single character.
+			if ( ! normalizer_is_normalized( $value ) ) {
+				$value = normalizer_normalize( $value );
+			}
+		} catch ( Exception $e ) {
+			// Ignore the exception, continue execution.
+		}
 	}
 
 	$value_length = function_exists( 'mb_strlen' ) ? mb_strlen( $value ) : strlen( $value );
 	if ( $value_length > $nickname_length ) {
 		return sprintf( __( '%1$s must be shorter than %2$d characters.', 'buddyboss' ), $field_name, $nickname_length );
 	}
-
-	if ( class_exists( 'Normalizer' ) ) {
-
-		// Ensures that the combined characters are treated as a single character.
-		$value = Normalizer::normalize( $value, 16 );
-	}
-
-	$value_length = function_exists( 'mb_strlen' ) ? mb_strlen( $value ) : strlen( $value );
 
 	// Minimum of 3 characters.
 	if ( $value_length < 3 ) {
@@ -1165,13 +1173,9 @@ function bp_xprofile_validate_social_networks_value( $retval, $field_id, $value,
 	}
 
 	foreach ( $value as $k => $v ) {
-		if ( ! empty( $validation ) && ! empty( $validation[ $k ] ) ) {
-			continue;
-		}
-
-		if ( '' === $v || filter_var( $v, FILTER_VALIDATE_URL ) ) {
-
-		} else {
+		$v = trim( $v );
+		// Skip validation for empty fields unless required.
+		if ( ! empty( $v ) && ! wp_http_validate_url( $v ) ) {
 			$key = bp_social_network_search_key( $k, $providers );
 			$validation[ $k ] = sprintf( __( 'Please enter valid %s profile url.', 'buddyboss' ), $providers[ $key ]->name );
 		}
